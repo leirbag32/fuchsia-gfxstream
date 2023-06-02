@@ -1,5 +1,17 @@
 // Compute shader to perform ASTC decoding.
 //
+// Usage:
+// #include "AstcDecompressor.glsl"
+//
+// main() {
+//   uvec4 astcBlock = ... // read an ASTC block
+//   astcDecoderInitialize(astcBlock, blockSize);
+//   uvec2 posInBlock = uvec2(0, 0);  // which texel we want to decode in the block
+//   uvec4 texel = astcDecodeTexel(pos);
+// }
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 // Please refer for the ASTC spec for all the details:
 // https://www.khronos.org/registry/OpenGL/extensions/KHR/KHR_texture_compression_astc_hdr.txt
 //
@@ -23,10 +35,9 @@
 //
 //   1. Use a uniform buffer instead of static arrays to load the tables in AstcLookupTables.glsl
 //   2. Investigate using SSBO or sampled image instead of storage image for the input.
-//   3. Change the local_size to match the block size
-//   4. Make decodeTrit() / decodeQuint() return a pair of values, since we always need at least 2
-//   5. Look into which queue we use to run the shader, some GPUs may have a separate compute queue.
-//   6. Use a `shared` variable to share the block data and common block config, once we change the
+//   3. Make decodeTrit() / decodeQuint() return a pair of values, since we always need at least 2
+//   4. Look into which queue we use to run the shader, some GPUs may have a separate compute queue.
+//   5. Use a `shared` variable to share the block data and common block config, once we change the
 //      local group size to match the block size.
 //
 // Missing features
@@ -37,40 +48,23 @@
 //   2. Add support for 3D slices.
 //   3. HDR support? Probably not worth it.
 
-#version 450
 #include "AstcLookupTables.glsl"
-#include "Common.comp"
-
-precision highp int;
-
-// TODO(gregschlom) this probably needs to be dynamic (equal to the block size). But we should
-// benchmark different sizes to see the impact.
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-
-layout(push_constant) uniform ImageFormatBlock {
-    uvec2 blockSize;
-    uint baseLayer;
-    uint smallBlock;  // TODO(gregschlom) Remove this. It's just (blockSize.x * blockSize.y < 31)
-}
-u_pushConstant;
-
-layout(binding = 0, rgba32ui) readonly uniform WITH_TYPE(uimage) srcImage;
-layout(binding = 1, rgba8ui) writeonly uniform WITH_TYPE(uimage) dstImage;
 
 const uvec4 kErrorColor = uvec4(255, 0, 255, 255);  // beautiful magenta, as per the spec
 
 // Global variables ////////////////////////////////////////////////////////////////////////////////
 
-uvec4 astcBlock;           // Full ASTC block data
-bool decodeError = false;  // True if there's an error in the block.
-bool voidExtent;           // True if void-extent block (a block we all pixels are the same color)
-bool dualPlane;            // True for dual plane blocks (a block with 2 sets of weights)
-uvec2 weightGridSize;      // Width and height of the weight grid. Always <= blockSize.
-uint numWeights;           // Number of weights
-uvec3 weightEncoding;      // Number of trits (x), quints (y) and bits (z) to encode the weights.
-uint weightDataSize;       // Size of the weight data in bits
-uint numPartitions;        // Number of partitions (1-4)
-uint partitionSeed;        // Determines which partition pattern we use (10 bits)
+uvec4 astcBlock;       // Full ASTC block data
+uvec2 blockSize;       // Size of the ASTC block
+bool decodeError;      // True if there's an error in the block.
+bool voidExtent;       // True if void-extent block (all pixels are the same color)
+bool dualPlane;        // True for dual plane blocks (a block with 2 sets of weights)
+uvec2 weightGridSize;  // Width and height of the weight grid. Always <= blockSize.
+uint numWeights;       // Number of weights
+uvec3 weightEncoding;  // Number of trits (x), quints (y) and bits (z) to encode the weights.
+uint weightDataSize;   // Size of the weight data in bits
+uint numPartitions;    // Number of partitions (1-4)
+uint partitionSeed;    // Determines which partition pattern we use (10 bits)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -83,7 +77,11 @@ uint getEncodingSize(uint numVals, uvec3 encoding) {
 }
 
 // This function sets all the global variables above
-void decodeBlockConfig() {
+void astcDecoderInitialize(uvec4 blockData, uvec2 blockSize_) {
+    astcBlock = blockData;
+    blockSize = blockSize_;
+    decodeError = false;
+
     voidExtent = (astcBlock[3] & 0x1FF) == 0x1FC;
     if (voidExtent) return;
 
@@ -143,7 +141,7 @@ void decodeBlockConfig() {
         }
     }
 
-    if (any(greaterThan(weightGridSize, u_pushConstant.blockSize))) {
+    if (any(greaterThan(weightGridSize, blockSize))) {
         decodeError = true;
         return;
     }
@@ -171,7 +169,7 @@ void decodeBlockConfig() {
 // Extracts a range of bits from a uvec4, treating it as a single 128-bit field.
 // offset: index of the first bit to extract (0-127).
 // numBits: number of bits to extract. (0-32). If numBits is 0, this returns 0.
-// Result is undefined if offset >= 128 or offset + numBits >= 129
+// Result is undefined if offset >= 128 or offset + numBits > 128
 uint extractBits(uvec4 data, uint offset, uint numBits) {
     if (numBits == 0) return 0;
 
@@ -283,7 +281,7 @@ uint decodeTrit(uvec4 data, uint offset, uint numBits, uint i) {
 uint decodeQuint(uvec4 data, uint offset, uint numBits, uint i) {
     const int inumBits = int(numBits);
 
-    // Note that we don't have the same size issue as trits (see above), sice the largest encoding
+    // Note that we don't have the same size issue as trits (see above), since the largest encoding
     // here is 1 quint and 5 bits, which is 3 * 5 + 7 = 22 bits long
     const uint block = extractBits(data, offset, 3 * numBits + 7);
 
@@ -320,7 +318,7 @@ uint decode1Weight(uvec4 weightData, uvec3 encoding, uint numWeights, uint index
         uint offset = index * numBits;
         uint w = extractBits(weightData, offset, numBits);
 
-        // The first number in the table is the multiplication factor. 63 / (2^numBits - 1)
+        // The first number in the table is the multiplication factor: 63 / (2^numBits - 1)
         // The second number is a shift factor to adjust when the previous result isn't an integer.
         const uvec2 kUnquantTable[] = {{63, 8}, {21, 8}, {9, 8}, {4, 2}, {2, 4}, {1, 8}};
         const uvec2 unquant = kUnquantTable[numBits - 1];
@@ -355,7 +353,7 @@ uvec2 decodeWeights(uvec4 weightData, const uvec2 posInBlock) {
 
     // TODO(gregschlom): The spec says: "since the block dimensions are constrained, these are
     // easily looked up in a table." - Is it worth doing?
-    uvec2 scaleFactor = (1024 + u_pushConstant.blockSize / 2) / (u_pushConstant.blockSize - 1);
+    uvec2 scaleFactor = (1024 + blockSize / 2) / (blockSize - 1);
 
     uvec2 homogeneousCoords = posInBlock * scaleFactor;
     uvec2 gridCoords = (homogeneousCoords * (weightGridSize - 1) + 32) >> 6;
@@ -393,8 +391,7 @@ uint selectPartition(uint seed, uvec2 pos, uint numPartitions) {
     if (numPartitions == 1) {
         return 0;
     }
-    // TODO(gregschlom): remove this push constant
-    if (u_pushConstant.smallBlock != 0) {
+    if (blockSize.x * blockSize.y < 31) {
         pos <<= 1;
     }
     seed = 1024 * numPartitions + (seed - 1024);
@@ -580,7 +577,6 @@ uvec4 buildBitmask(uint bits) {
 
 // Main function to decode the texel at a given position in the block
 uvec4 astcDecodeTexel(const uvec2 posInBlock) {
-    decodeBlockConfig();
     if (decodeError) {
         return kErrorColor;
     }
@@ -644,22 +640,4 @@ uvec4 astcDecodeTexel(const uvec2 posInBlock) {
     // TODO(gregschlom): Check section "C.2.19  Weight Application" - we're supposed to do something
     // else here, depending on whether we're using sRGB or not. Currently we have a difference of up
     // to 1 when compared against the reference decoder. Probably not worth trying to fix it though.
-}
-
-// TODO(gregschlom): do we actually use 1DArray images?
-ivec2 getPos1DArray(ivec3 pos) { return pos.xz; }
-ivec3 getPos2DArray(ivec3 pos) { return pos; }
-ivec3 getPos3D(ivec3 pos) { return pos; }
-
-void main() {
-    // TODO(gregschlom): Use gl_WorkGroupID and gl_LocalInvocationID, once we swich the workgroup
-    // size to match the block size.
-    uvec2 texelPos = gl_GlobalInvocationID.xy;
-    uint layer = u_pushConstant.baseLayer + gl_GlobalInvocationID.z;
-    uvec2 blockPos = texelPos / u_pushConstant.blockSize;
-    uvec2 posInBlock = texelPos % u_pushConstant.blockSize;
-
-    astcBlock = imageLoad(srcImage, WITH_TYPE(getPos)(ivec3(blockPos, layer))).wzyx;
-    uvec4 texel = astcDecodeTexel(posInBlock);
-    imageStore(dstImage, WITH_TYPE(getPos)(ivec3(texelPos, layer)), texel);
 }
