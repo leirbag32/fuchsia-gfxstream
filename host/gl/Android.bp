@@ -9,8 +9,8 @@ package {
 }
 
 cc_library_static {
-    name: "libgfxstream_host_gl_server",
-    defaults: ["gfxstream_defaults"],
+    name: "gfxstream_gl_server",
+    defaults: [ "gfxstream_defaults" ],
     srcs: [
         "BufferGl.cpp",
         "ColorBufferGl.cpp",
@@ -30,13 +30,9 @@ cc_library_static {
         "TextureResize.cpp",
         "YUVConverter.cpp",
     ],
-    header_libs: [
-        "gfxstream_gl_host_common_headers",
-        "gfxstream_opengl_headers",
-    ],
     static_libs: [
-        "libgfxstream_host_gles1_dec",
-        "libgfxstream_host_gles2_dec",
-        "libgfxstream_host_glsnapshot",
+        "gfxstream_gles1_dec",
+        "gfxstream_gles2_dec",
+        "gfxstream_glsnapshot",
     ],
 }

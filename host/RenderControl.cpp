@@ -20,7 +20,6 @@
 #include <string.h>
 
 #include <atomic>
-#include <limits>
 #include <memory>
 
 #include "ChecksumCalculatorThreadInfo.h"
@@ -255,8 +254,6 @@ static const char* kReadColorBufferDma = "ANDROID_EMU_read_color_buffer_dma";
 
 // Multiple display configs
 static const char* kHWCMultiConfigs= "ANDROID_EMU_hwc_multi_configs";
-
-static constexpr const uint64_t kInvalidPUID = std::numeric_limits<uint64_t>::max();
 
 static void rcTriggerWait(uint64_t glsync_ptr,
                           uint64_t thread_ptr,
@@ -1096,14 +1093,10 @@ static void rcTriggerWait(uint64_t eglsync_ptr,
                        thread_ptr, timeline);
         SyncThread::get()->triggerWaitVk(reinterpret_cast<VkFence>(eglsync_ptr),
                                          timeline);
-    } else if (thread_ptr == 2) {
-        EGLSYNC_DPRINT("vkFence=0x%llx timeline=0x%llx", eglsync_ptr,
-                       thread_ptr, timeline);
-        SyncThread::get()->triggerWaitVkQsri(reinterpret_cast<VkImage>(eglsync_ptr), timeline);
     } else {
-        EmulatedEglFenceSync* fenceSync = EmulatedEglFenceSync::getFromHandle(eglsync_ptr);
+        EmulatedEglFenceSync* fenceSync = reinterpret_cast<EmulatedEglFenceSync*>(eglsync_ptr);
         FrameBuffer *fb = FrameBuffer::getFB();
-        if (fb && fenceSync && fenceSync->isCompositionFence()) {
+        if (fb && fenceSync->isCompositionFence()) {
             fb->scheduleVsyncTask([eglsync_ptr, fenceSync, timeline](uint64_t) {
                 EGLSYNC_DPRINT(
                     "vsync: eglsync=0x%llx fenceSync=%p thread_ptr=0x%llx "
@@ -1234,14 +1227,6 @@ static int rcDestroySyncKHR(uint64_t handle) {
 }
 
 static void rcSetPuid(uint64_t puid) {
-    if (puid == kInvalidPUID) {
-        // The host process pipe implementation (GLProcessPipe) has been updated
-        // to not generate a unique pipe id when running with virtio gpu and
-        // instead send -1 to the guest. Ignore those requests as the PUID will
-        // instead be the virtio gpu context id.
-        return;
-    }
-
     RenderThreadInfo *tInfo = RenderThreadInfo::get();
     tInfo->m_puid = puid;
 }

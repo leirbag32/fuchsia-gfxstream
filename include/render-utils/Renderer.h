@@ -70,8 +70,7 @@ public:
     //   asynchronously on its own thread. |loadStream| can be used right after
     //   the call as all the required data is copied here synchronously.
     virtual RenderChannelPtr createRenderChannel(
-            android::base::Stream* loadStream = nullptr,
-            uint32_t virtioGpuContextId = -1) = 0;
+            android::base::Stream* loadStream = nullptr) = 0;
 
     // analog of createRenderChannel, but for the address space graphics device
     virtual void* addressSpaceGraphicsConsumerCreate(
@@ -274,7 +273,7 @@ public:
     virtual void pauseAllPreSave() = 0;
 
     // Resumes all channels after snapshot saving or loading.
-    virtual void resumeAll(bool waitForSave = true) = 0;
+    virtual void resumeAll() = 0;
 
     virtual void save(
             android::base::Stream* stream,
@@ -282,7 +281,6 @@ public:
     virtual bool load(
             android::base::Stream* stream,
             const android::snapshot::ITextureLoaderPtr& textureLoader) = 0;
-
     // Fill GLES usage protobuf
     virtual void fillGLESUsages(android_studio::EmulatorGLESUsages*) = 0;
 

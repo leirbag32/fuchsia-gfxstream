@@ -19,23 +19,20 @@
 #include "FrameBuffer.h"
 #include "ReadBuffer.h"
 #include "RenderChannelImpl.h"
+#include "RenderControl.h"
 #include "RenderThreadInfo.h"
 #include "RingStream.h"
 #include "VkDecoderContext.h"
+#include "apigen-codec-common/ChecksumCalculatorThreadInfo.h"
 #include "aemu/base/HealthMonitor.h"
-#include "aemu/base/Metrics.h"
-#include "aemu/base/files/StreamSerializing.h"
 #include "aemu/base/synchronization/Lock.h"
 #include "aemu/base/synchronization/MessageChannel.h"
+#include "aemu/base/Metrics.h"
+#include "aemu/base/files/StreamSerializing.h"
 #include "aemu/base/system/System.h"
-#include "apigen-codec-common/ChecksumCalculatorThreadInfo.h"
 #include "host-common/feature_control.h"
 #include "host-common/logging.h"
 #include "vulkan/VkCommonOperations.h"
-
-#if GFXSTREAM_ENABLE_HOST_GLES
-#include "RenderControl.h"
-#endif
 
 #define EMUGL_DEBUG_LEVEL 0
 #include "host-common/debug.h"
@@ -81,12 +78,10 @@ static constexpr int kMinThreadsToRunUnlimited = 5;
 static android::base::Lock sThreadRunLimiter;
 
 RenderThread::RenderThread(RenderChannelImpl* channel,
-                           android::base::Stream* loadStream,
-                           uint32_t virtioGpuContextId)
+                           android::base::Stream* loadStream)
     : android::base::Thread(android::base::ThreadFlags::MaskSignals, 2 * 1024 * 1024),
       mChannel(channel),
-      mRunInLimitedMode(android::base::getCpuCoreCount() < kMinThreadsToRunUnlimited),
-      mContextId(virtioGpuContextId)
+      mRunInLimitedMode(android::base::getCpuCoreCount() < kMinThreadsToRunUnlimited)
 {
     if (loadStream) {
         const bool success = loadStream->getByte();
@@ -143,7 +138,7 @@ void RenderThread::pausePreSnapshot() {
     }
 }
 
-void RenderThread::resume(bool waitForSave) {
+void RenderThread::resume() {
     AutoLock lock(mLock);
     // This function can be called for a thread from pre-snapshot loading
     // state; it doesn't need to do anything.
@@ -151,10 +146,7 @@ void RenderThread::resume(bool waitForSave) {
         return;
     }
     if (mRingStream) mRingStream->resume();
-    if (waitForSave) {
-        waitForSnapshotCompletion(&lock);
-    }
-    mNeedReloadProcessResources = true;
+    waitForSnapshotCompletion(&lock);
     mStream.clear();
     mState = SnapshotState::Empty;
     if (mChannel) mChannel->resume();
@@ -273,13 +265,12 @@ intptr_t RenderThread::main() {
 
     //
     // initialize decoders
-#if GFXSTREAM_ENABLE_HOST_GLES
+    //
     if (!feature_is_enabled(kFeature_GuestUsesAngle)) {
         tInfo.initGl();
     }
 
     initRenderControlContext(&tInfo.m_rcDec);
-#endif
 
     if (!mChannel && !mRingStream) {
         GL_LOG("Exited a loader RenderThread @%p", this);
@@ -307,9 +298,7 @@ intptr_t RenderThread::main() {
         tInfo.m_vkInfo.emplace();
     }
 
-#if GFXSTREAM_ENABLE_HOST_MAGMA
     tInfo.m_magmaInfo.emplace(mContextId);
-#endif
 
     // This is the only place where we try loading from snapshot.
     // But the context bind / restoration will be delayed after receiving
@@ -360,7 +349,7 @@ intptr_t RenderThread::main() {
     auto& metricsLogger = FrameBuffer::getFB()->getMetricsLogger();
 
     const ProcessResources* processResources = nullptr;
-    bool anyProgress = false;
+
     while (true) {
         // Let's make sure we read enough data for at least some processing.
         uint32_t packetSize;
@@ -378,11 +367,7 @@ intptr_t RenderThread::main() {
             // time.
             packetSize = 8;
         }
-        if (!anyProgress) {
-            // If we didn't make any progress last time, then make sure we read at least one
-            // extra byte.
-            packetSize = std::max(packetSize, static_cast<uint32_t>(readBuf.validData() + 1));
-        }
+
         int stat = 0;
         if (packetSize > readBuf.validData()) {
             stat = readBuf.getData(ioStream, packetSize);
@@ -399,10 +384,6 @@ intptr_t RenderThread::main() {
 
                 tInfo.postLoadRefreshCurrentContextSurfacePtrs();
                 needRestoreFromSnapshot = false;
-            }
-            if (mNeedReloadProcessResources) {
-                processResources = nullptr;
-                mNeedReloadProcessResources = false;
             }
         }
 
@@ -437,23 +418,22 @@ intptr_t RenderThread::main() {
             fflush(dumpFP);
         }
 
-        bool progress = false;
-        anyProgress = false;
+        bool progress;
+
         do {
-            anyProgress |= progress;
             std::unique_ptr<EventHangMetadata::HangAnnotations> renderThreadData =
                 std::make_unique<EventHangMetadata::HangAnnotations>();
 
-            const char* contextName = nullptr;
-            if (mNameOpt) {
-                contextName = (*mNameOpt).c_str();
+            const char* processName = nullptr;
+            if (tInfo.m_processName) {
+                processName = tInfo.m_processName.value().c_str();
             }
 
             auto* healthMonitor = FrameBuffer::getFB()->getHealthMonitor();
             if (healthMonitor) {
-                if (contextName) {
+                if (processName) {
                     renderThreadData->insert(
-                        {{"renderthread_guest_process", contextName}});
+                        {{"renderthread_guest_process", processName}});
                 }
                 if (readBuf.validData() >= 4) {
                     renderThreadData->insert(
@@ -465,12 +445,6 @@ intptr_t RenderThread::main() {
                                 .setHangType(EventHangMetadata::HangType::kRenderThread)
                                 .setAnnotations(std::move(renderThreadData))
                                 .build();
-
-#ifndef AEMU_BUILD
-            if (!tInfo.m_puid) {
-                tInfo.m_puid = mContextId;
-            }
-#endif
 
             if (!processResources && tInfo.m_puid) {
                 processResources = FrameBuffer::getFB()->getProcessResources(tInfo.m_puid);
@@ -488,7 +462,7 @@ intptr_t RenderThread::main() {
             if (tInfo.m_vkInfo) {
                 tInfo.m_vkInfo->ctx_id = mContextId;
                 VkDecoderContext context = {
-                    .processName = contextName,
+                    .processName = processName,
                     .gfxApiLogger = &gfxLogger,
                     .healthMonitor = FrameBuffer::getFB()->getHealthMonitor(),
                     .metricsLogger = &metricsLogger,
@@ -527,7 +501,6 @@ intptr_t RenderThread::main() {
                 FrameBuffer::getFB()->lockContextStructureRead();
             }
 
-#if GFXSTREAM_ENABLE_HOST_GLES
             if (tInfo.m_glInfo) {
                 {
                     last = tInfo.m_glInfo->m_glDec.decode(
@@ -552,14 +525,12 @@ intptr_t RenderThread::main() {
                     }
                 }
             }
-#endif
 
             FrameBuffer::getFB()->unlockContextStructureRead();
             //
             // try to process some of the command buffer using the
             // renderControl decoder
             //
-#if GFXSTREAM_ENABLE_HOST_GLES
             {
                 last = tInfo.m_rcDec.decode(readBuf.buf(), readBuf.validData(),
                                             ioStream, &checksumCalc);
@@ -568,13 +539,11 @@ intptr_t RenderThread::main() {
                     progress = true;
                 }
             }
-#endif
 
             //
             // try to process some of the command buffer using the Magma
             // decoder
             //
-#if GFXSTREAM_ENABLE_HOST_MAGMA
             if (tInfo.m_magmaInfo && tInfo.m_magmaInfo->mMagmaDec)
             {
                 last = tInfo.m_magmaInfo->mMagmaDec->decode(readBuf.buf(), readBuf.validData(),
@@ -584,7 +553,6 @@ intptr_t RenderThread::main() {
                     progress = true;
                 }
             }
-#endif
 
             if (mRunInLimitedMode) {
                 sThreadRunLimiter.unlock();
@@ -597,11 +565,9 @@ intptr_t RenderThread::main() {
         fclose(dumpFP);
     }
 
-#if GFXSTREAM_ENABLE_HOST_GLES
     if (tInfo.m_glInfo) {
         FrameBuffer::getFB()->drainGlRenderThreadResources();
     }
-#endif
 
     setFinished();
 

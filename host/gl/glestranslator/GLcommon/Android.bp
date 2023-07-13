@@ -8,25 +8,19 @@ package {
 }
 
 cc_library_static {
-    name: "libgfxstream_host_glestranslator_glcommon",
-    defaults: ["gfxstream_defaults"],
+    name: "gfxstream_translator_glcommon",
+    defaults: [ "gfxstream_defaults" ],
     cflags: [
         "-fvisibility=hidden",
         "-Wno-inconsistent-missing-override",
         "-Wno-unused-parameter",
         "-Wno-unused-function",
     ],
-    header_libs: [
-        "gfxstream_opengl_headers",
-    ],
     static_libs: [
         "gfxstream_base",
-        "libgfxstream_etc",
-    ],
-    export_static_lib_headers: [
-        "libgfxstream_etc",
     ],
     srcs: [
+        "etc.cpp",
         "rgtc.cpp",
         "FramebufferData.cpp",
         "GLBackgroundLoader.cpp",

@@ -49,7 +49,7 @@ VulkanTestHelper::VulkanTestHelper()
       mLogger(),
       mMetricsLogger(android::base::CreateMetricsLogger()),
       mHealthMonitor(*mMetricsLogger),
-      mVkEmu(createGlobalVkEmulation(mVk, false)),
+      mVkEmu(createGlobalVkEmulation(mVk)),
       mBp(std::make_unique<BumpPool>()),
       mDecoderContext(VkDecoderContext{.processName = "vulkan_test",
                                        .gfxApiLogger = &mLogger,

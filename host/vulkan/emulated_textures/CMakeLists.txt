@@ -16,5 +16,4 @@ target_include_directories(emulated_textures
         ${GFXSTREAM_REPO_ROOT}
         ${GFXSTREAM_REPO_ROOT}/include
         ${GFXSTREAM_REPO_ROOT}/host
-        ${GFXSTREAM_REPO_ROOT}/host/vulkan
-        ${GFXSTREAM_REPO_ROOT}/host/vulkan/cereal/common)
+        ${GFXSTREAM_REPO_ROOT}/host/vulkan)

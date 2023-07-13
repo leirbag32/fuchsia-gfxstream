@@ -24,12 +24,9 @@
 #include "RenderThread.h"
 #include "aemu/base/system/System.h"
 #include "aemu/base/threads/WorkerThread.h"
+#include "gl/EmulatedEglFenceSync.h"
 #include "host-common/logging.h"
 #include "snapshot/common.h"
-
-#if GFXSTREAM_ENABLE_HOST_GLES
-#include "gl/EmulatedEglFenceSync.h"
-#endif
 
 namespace gfxstream {
 
@@ -91,7 +88,6 @@ public:
 
     void stop() {
         mCleanupWorker.enqueue(Exit{});
-        mCleanupWorker.join();
     }
 
     void waitForCleanup() {
@@ -187,7 +183,6 @@ void RendererImpl::stop(bool wait) {
     for (const auto& c : mStoppedChannels) {
         c->renderThread()->wait();
     }
-    mCleanupThread->waitForCleanup();
     mStoppedChannels.clear();
 }
 
@@ -228,9 +223,8 @@ void RendererImpl::waitForProcessCleanup() {
 }
 
 RenderChannelPtr RendererImpl::createRenderChannel(
-        android::base::Stream* loadStream, uint32_t virtioGpuContextId) {
-    const auto channel =
-        std::make_shared<RenderChannelImpl>(loadStream, virtioGpuContextId);
+        android::base::Stream* loadStream) {
+    const auto channel = std::make_shared<RenderChannelImpl>(loadStream);
     {
         android::base::AutoLock lock(mChannelsLock);
 
@@ -277,17 +271,11 @@ void* RendererImpl::addressSpaceGraphicsConsumerCreate(
     auto thread = new RenderThread(context, loadStream, callbacks, contextId,
                                    capsetId, std::move(nameOpt));
     thread->start();
-    android::base::AutoLock lock(mAddressSpaceRenderThreadLock);
-    mAddressSpaceRenderThreads.emplace(thread);
     return (void*)thread;
 }
 
 void RendererImpl::addressSpaceGraphicsConsumerDestroy(void* consumer) {
     RenderThread* thread = (RenderThread*)consumer;
-    {
-        android::base::AutoLock lock(mAddressSpaceRenderThreadLock);
-        mAddressSpaceRenderThreads.erase(thread);
-    }
     thread->wait();
     delete thread;
 }
@@ -304,7 +292,7 @@ void RendererImpl::addressSpaceGraphicsConsumerSave(void* consumer, android::bas
 
 void RendererImpl::addressSpaceGraphicsConsumerPostSave(void* consumer) {
     RenderThread* thread = (RenderThread*)consumer;
-    thread->resume(true);
+    thread->resume();
 }
 
 void RendererImpl::addressSpaceGraphicsConsumerRegisterPostLoadRenderThread(void* consumer) {
@@ -313,41 +301,29 @@ void RendererImpl::addressSpaceGraphicsConsumerRegisterPostLoadRenderThread(void
 }
 
 void RendererImpl::pauseAllPreSave() {
-    {
-        android::base::AutoLock lock(mChannelsLock);
-        if (mStopped) {
-            return;
-        }
-        for (const auto& c : mChannels) {
-            c->renderThread()->pausePreSnapshot();
-        }
+    android::base::AutoLock lock(mChannelsLock);
+    if (mStopped) {
+        return;
     }
-    {
-        android::base::AutoLock lock(mAddressSpaceRenderThreadLock);
-        for (const auto& thread : mAddressSpaceRenderThreads) {
-            thread->pausePreSnapshot();
-        }
+    for (const auto& c : mChannels) {
+        c->renderThread()->pausePreSnapshot();
     }
+    lock.unlock();
     waitForProcessCleanup();
 }
 
-void RendererImpl::resumeAll(bool waitForSave) {
-    {
-        android::base::AutoLock lock(mAddressSpaceRenderThreadLock);
-        for (const auto t : mAdditionalPostLoadRenderThreads) {
-            t->resume(waitForSave);
-        }
-    }
+void RendererImpl::resumeAll() {
     {
         android::base::AutoLock lock(mChannelsLock);
         if (mStopped) {
             return;
         }
         for (const auto& c : mChannels) {
-            c->renderThread()->resume(waitForSave);
+            c->renderThread()->resume();
         }
-        for (const auto& thread : mAddressSpaceRenderThreads) {
-            thread->resume(waitForSave);
+
+        for (const auto t: mAdditionalPostLoadRenderThreads) {
+            t->resume();
         }
         mAdditionalPostLoadRenderThreads.clear();
     }
@@ -392,18 +368,14 @@ bool RendererImpl::load(android::base::Stream* stream,
     bool res = true;
 
     res = fb->onLoad(stream, textureLoader);
-#if GFXSTREAM_ENABLE_HOST_GLES
     gl::EmulatedEglFenceSync::onLoad(stream);
-#endif
 
     return res;
 }
 
 void RendererImpl::fillGLESUsages(android_studio::EmulatorGLESUsages* usages) {
     auto fb = FrameBuffer::getFB();
-#if GFXSTREAM_ENABLE_HOST_GLES
     if (fb) fb->fillGLESUsages(usages);
-#endif
 }
 
 int RendererImpl::getScreenshot(unsigned int nChannels, unsigned int* width, unsigned int* height,
@@ -595,7 +567,6 @@ static struct AndroidVirtioGpuOps sVirtioGpuOps = {
             FrameBuffer::getFB()->postWithCallback(handle, cb);
         },
     .repost = []() { FrameBuffer::getFB()->repost(); },
-#if GFXSTREAM_ENABLE_HOST_GLES
     .create_yuv_textures =
         [](uint32_t type, uint32_t count, int width, int height, uint32_t* output) {
             FrameBuffer::getFB()->createYUVTextures(type, count, width, height, output);
@@ -614,15 +585,12 @@ static struct AndroidVirtioGpuOps sVirtioGpuOps = {
             FrameBuffer::getFB()->swapTexturesAndUpdateColorBuffer(
                 colorbufferhandle, x, y, width, height, format, type, texture_type, textures);
         },
-#endif
     .get_last_posted_color_buffer =
         []() { return FrameBuffer::getFB()->getLastPostedColorBuffer(); },
-#if GFXSTREAM_ENABLE_HOST_GLES
     .bind_color_buffer_to_texture =
         [](uint32_t handle) { FrameBuffer::getFB()->bindColorBufferToTexture2(handle); },
     .get_global_egl_context = []() { return FrameBuffer::getFB()->getGlobalEGLContext(); },
     .wait_for_gpu = [](uint64_t eglsync) { FrameBuffer::getFB()->waitForGpu(eglsync); },
-#endif
     .wait_for_gpu_vulkan =
         [](uint64_t device, uint64_t fence) {
             FrameBuffer::getFB()->waitForGpuVulkan(device, fence);
@@ -631,12 +599,10 @@ static struct AndroidVirtioGpuOps sVirtioGpuOps = {
         [](bool guestManaged) {
             FrameBuffer::getFB()->setGuestManagedColorBufferLifetime(guestManaged);
         },
-#if GFXSTREAM_ENABLE_HOST_GLES
     .async_wait_for_gpu_with_cb =
         [](uint64_t eglsync, FenceCompletionCallback cb) {
             FrameBuffer::getFB()->asyncWaitForGpuWithCb(eglsync, cb);
         },
-#endif
     .async_wait_for_gpu_vulkan_with_cb =
         [](uint64_t device, uint64_t fence, FenceCompletionCallback cb) {
             FrameBuffer::getFB()->asyncWaitForGpuVulkanWithCb(device, fence, cb);
@@ -662,14 +628,12 @@ static struct AndroidVirtioGpuOps sVirtioGpuOps = {
         [](uint32_t handle, int32_t* width, int32_t* height, int32_t* internal_format) {
             return FrameBuffer::getFB()->getColorBufferInfo(handle, width, height, internal_format);
         },
-#if GFXSTREAM_ENABLE_HOST_GLES
     .platform_create_shared_egl_context =
         []() { return FrameBuffer::getFB()->platformCreateSharedEglContext(); },
     .platform_destroy_shared_egl_context =
         [](void* context) {
             return FrameBuffer::getFB()->platformDestroySharedEglContext(context);
         },
-#endif
 };
 
 struct AndroidVirtioGpuOps* RendererImpl::getVirtioGpuOps() {
@@ -724,19 +688,11 @@ void RendererImpl::setDisplayActiveConfig(int configId) {
 }
 
 const void* RendererImpl::getEglDispatch() {
-#if GFXSTREAM_ENABLE_HOST_GLES
     return FrameBuffer::getFB()->getEglDispatch();
-#else
-    return nullptr;
-#endif
 }
 
 const void* RendererImpl::getGles2Dispatch() {
-#if GFXSTREAM_ENABLE_HOST_GLES
     return FrameBuffer::getFB()->getGles2Dispatch();
-#else
-    return nullptr;
-#endif
 }
 
 }  // namespace gfxstream

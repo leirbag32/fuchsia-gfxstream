@@ -8,15 +8,10 @@ package {
 }
 
 cc_library_static {
-    name: "libgfxstream_host_compressedtextures",
-    defaults: ["gfxstream_defaults"],
+    name: "gfxstream_compressedTextures",
+    defaults: [ "gfxstream_defaults" ],
     srcs: [
+        "etc.cpp",
         "AstcCpuDecompressorNoOp.cpp",
-    ],
-    static_libs: [
-        "libgfxstream_etc",
-    ],
-    export_static_lib_headers: [
-        "libgfxstream_etc",
     ],
 }

@@ -49,19 +49,9 @@ if (APPLE)
     set(stream-server-core-platform-sources NativeSubWindow_cocoa.m)
 elseif (WIN32)
     set(stream-server-core-platform-sources NativeSubWindow_win32.cpp)
-elseif (QNX)
-    set(stream-server-core-platform-sources NativeSubWindow_qnx.cpp)
 else()
     set(stream-server-core-platform-sources NativeSubWindow_x11.cpp)
 endif()
-
-add_library(
-        gfxstream_backend_headers
-        INTERFACE)
-target_include_directories(
-        gfxstream_backend_headers
-        INTERFACE
-        include)
 
 # Compile everything as a static library first so that unit tests can call non-exported functions
 add_library(
@@ -91,14 +81,12 @@ target_include_directories(
         ${GFXSTREAM_REPO_ROOT}
         ${GFXSTREAM_REPO_ROOT}/include
         ${GFXSTREAM_REPO_ROOT}/host
-        ${GFXSTREAM_REPO_ROOT}/host/include
         ${GFXSTREAM_REPO_ROOT}/host/apigen-codec-common
         ${GFXSTREAM_REPO_ROOT}/host/gl
         ${GFXSTREAM_REPO_ROOT}/host/gl/glestranslator/include
         ${GFXSTREAM_REPO_ROOT}/host/magma
         ${GFXSTREAM_REPO_ROOT}/host/magma/magma_dec
         ${GFXSTREAM_REPO_ROOT}/host/vulkan
-        ${GFXSTREAM_REPO_ROOT}/host/vulkan/cereal/common
         ${GFXSTREAM_REPO_ROOT}/third-party/fuchsia/magma/include
         ${GFXSTREAM_REPO_ROOT}/third-party/glm/include)
 
@@ -116,7 +104,6 @@ target_compile_options(
     -Wno-invalid-offsetof
     -Wno-free-nonheap-object
     -Wno-attributes
-    -DGFXSTREAM_ENABLE_HOST_GLES=1
     )
 
 # gfxstream_backend.dll
@@ -129,7 +116,6 @@ add_library(
 target_link_libraries(
     gfxstream_backend
     PUBLIC
-    gfxstream_common_utils
     gfxstream_backend_static
     PRIVATE
     )
@@ -146,12 +132,7 @@ if (APPLE)
         LINK_FLAGS  "-undefined dynamic_lookup -flat_namespace")
 endif()
 
-if(CONFIG_AEMU)
-    android_install_shared(gfxstream_backend)
-else()
-    install(
-      TARGETS gfxstream_backend RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX} LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX})
-endif()
+android_install_shared(gfxstream_backend)
 
 # Testing libraries
 add_subdirectory(testlibs)
@@ -319,8 +300,6 @@ endfunction()
 
     if (APPLE)
         target_compile_definitions(Vulkan_unittests PRIVATE -DVK_USE_PLATFORM_METAL_EXT)
-    elseif (QNX)
-        target_compile_definitions(Vulkan_unittests PRIVATE -DVK_USE_PLATFORM_SCREEN_QNX)
     elseif (UNIX)
         target_compile_definitions(Vulkan_unittests PRIVATE -DVK_USE_PLATFORM_XCB_KHR)
     endif()

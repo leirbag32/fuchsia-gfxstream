@@ -513,11 +513,6 @@ void CompressedImageInfo::decompressOnCpu(VkCommandBuffer commandBuffer, uint8_t
                                             dstImageLayout, regionCount, pRegions, context);
 }
 
-void CompressedImageInfo::decompressOnCpu(VkCommandBuffer commandBuffer, uint8_t* srcAstcData, size_t astcDataSize,
-                         const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo, const VkDecoderContext& context) {
-    mAstcTexture->on_vkCmdCopyBufferToImage2(commandBuffer, srcAstcData, astcDataSize, pCopyBufferToImageInfo, context);
-}
-
 VkMemoryRequirements CompressedImageInfo::getMemoryRequirements() const {
     return mMemoryRequirements;
 }
@@ -546,19 +541,6 @@ VkBufferImageCopy CompressedImageInfo::getBufferImageCopy(
     return region;
 }
 
-VkBufferImageCopy2 CompressedImageInfo::getBufferImageCopy(
-    const VkBufferImageCopy2& origRegion) const {
-    VkBufferImageCopy2 region = origRegion;
-    uint32_t mipLevel = region.imageSubresource.mipLevel;
-    region.imageSubresource.mipLevel = 0;
-    region.bufferRowLength /= mBlock.width;
-    region.bufferImageHeight /= mBlock.height;
-    region.imageOffset.x /= mBlock.width;
-    region.imageOffset.y /= mBlock.height;
-    region.imageExtent = compressedMipmapPortion(region.imageExtent, mipLevel);
-    return region;
-}
-
 // static
 VkImageCopy CompressedImageInfo::getCompressedMipmapsImageCopy(const VkImageCopy& origRegion,
                                                                const CompressedImageInfo& srcImg,
@@ -566,27 +548,6 @@ VkImageCopy CompressedImageInfo::getCompressedMipmapsImageCopy(const VkImageCopy
                                                                bool needEmulatedSrc,
                                                                bool needEmulatedDst) {
     VkImageCopy region = origRegion;
-    if (needEmulatedSrc) {
-        uint32_t mipLevel = region.srcSubresource.mipLevel;
-        region.srcSubresource.mipLevel = 0;
-        region.srcOffset.x /= srcImg.mBlock.width;
-        region.srcOffset.y /= srcImg.mBlock.height;
-        region.extent = srcImg.compressedMipmapPortion(region.extent, mipLevel);
-    }
-    if (needEmulatedDst) {
-        region.dstSubresource.mipLevel = 0;
-        region.dstOffset.x /= dstImg.mBlock.width;
-        region.dstOffset.y /= dstImg.mBlock.height;
-    }
-    return region;
-}
-
-VkImageCopy2 CompressedImageInfo::getCompressedMipmapsImageCopy(const VkImageCopy2& origRegion,
-                                                                const CompressedImageInfo& srcImg,
-                                                                const CompressedImageInfo& dstImg,
-                                                                bool needEmulatedSrc,
-                                                                bool needEmulatedDst) {
-    VkImageCopy2 region = origRegion;
     if (needEmulatedSrc) {
         uint32_t mipLevel = region.srcSubresource.mipLevel;
         region.srcSubresource.mipLevel = 0;

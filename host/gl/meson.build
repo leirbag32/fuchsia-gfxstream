@@ -41,10 +41,9 @@ files_lib_gl_server = files(
 lib_gl_server = static_library(
   'gl_server',
   files_lib_gl_server,
-  cpp_args: gfxstream_host_args,
-  include_directories: [inc_gfxstream_include, inc_include, inc_stream_servers, inc_apigen_codec,
+  cpp_args: default_cpp_args,
+  include_directories: [inc_include, inc_stream_servers, inc_apigen_codec,
                         inc_gl_snapshot, inc_gl_host_common],
   link_with: [lib_gles1_dec, lib_gles2_dec, lib_apigen_codec, lib_gl_dispatch,
               lib_apigen_codec],
-  dependencies: [aemu_base_dep, aemu_common_dep, aemu_snapshot_dep]
 )

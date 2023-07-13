@@ -1,5 +1,3 @@
-add_subdirectory(gl-host-common)
-
 # GLES decoder
 add_subdirectory(gles1_dec)
 add_subdirectory(gles2_dec)

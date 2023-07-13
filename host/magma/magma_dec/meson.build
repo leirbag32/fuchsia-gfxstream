@@ -11,7 +11,6 @@ files_lib_magma_dec = files(
 lib_magma_dec = static_library(
   'magma_dec',
   files_lib_magma_dec,
-  cpp_args: gfxstream_host_args,
-  include_directories: [inc_gfxstream_include, inc_include, inc_magma_external, inc_apigen_codec],
-  dependencies: [aemu_base_dep, aemu_common_dep]
+  cpp_args: default_cpp_args,
+  include_directories: [inc_include, inc_magma_external, inc_apigen_codec],
 )

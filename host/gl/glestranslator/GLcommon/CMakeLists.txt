@@ -1,5 +1,6 @@
 add_library(
   GLcommon
+  etc.cpp
   rgtc.cpp
   FramebufferData.cpp
   GLBackgroundLoader.cpp
@@ -24,7 +25,6 @@ target_include_directories(
     ${GFXSTREAM_REPO_ROOT}
     ${GFXSTREAM_REPO_ROOT}/include
     ${GFXSTREAM_REPO_ROOT}/host
-    ${GFXSTREAM_REPO_ROOT}/host/apigen-codec-common
     ${GFXSTREAM_REPO_ROOT}/host/gl/glestranslator/include)
 target_link_libraries(
     GLcommon PUBLIC
@@ -32,10 +32,7 @@ target_link_libraries(
     aemu-host-common.headers
     gfxstream-snapshot.headers
     gfxstream-compressedTextures
-    gfxstream_egl_headers
-    gfxstream_etc_headers
-    PRIVATE
-    gfxstream_etc)
+    gfxstream_egl_headers)
 if (NOT MSVC)
     target_compile_options(GLcommon PRIVATE -fvisibility=hidden)
 endif()

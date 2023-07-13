@@ -96,10 +96,6 @@ void VkReconstruction::save(android::base::Stream* stream) {
 
         for (auto handle : topoOrder) {
             auto item = mHandleReconstructions.get(handle);
-            // item could have been deleted.
-            if (!item) {
-                continue;
-            }
 
             for (auto apiHandle : item->apiRefs) {
                 if (uniqApiRefsToTopoOrder.find(apiHandle) == uniqApiRefsToTopoOrder.end()) {

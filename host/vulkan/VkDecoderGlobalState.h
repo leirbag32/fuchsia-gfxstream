@@ -28,7 +28,7 @@
 #include "aemu/base/AsyncResult.h"
 #include "aemu/base/HealthMonitor.h"
 #include "aemu/base/synchronization/Lock.h"
-#include "goldfish_vk_private_defs.h"
+#include "cereal/common/goldfish_vk_private_defs.h"
 #include "cereal/common/goldfish_vk_transform.h"
 #include "host-common/GfxstreamFatalError.h"
 #include "utils/GfxApiLogger.h"
@@ -319,30 +319,6 @@ class VkDecoderGlobalState {
                                    VkBuffer dstBuffer, uint32_t regionCount,
                                    const VkBufferImageCopy* pRegions);
 
-    void on_vkCmdCopyBufferToImage2(android::base::BumpPool* pool,
-                                    VkCommandBuffer commandBuffer,
-                                    const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo,
-                                    const VkDecoderContext& context);
-
-    void on_vkCmdCopyImage2(android::base::BumpPool* pool,
-                           VkCommandBuffer commandBuffer,
-                           const VkCopyImageInfo2* pCopyImageInfo);
-    void on_vkCmdCopyImageToBuffer2(android::base::BumpPool* pool,
-                                   VkCommandBuffer commandBuffer,
-                                   const VkCopyImageToBufferInfo2* pCopyImageToBufferInfo);
-
-    void on_vkCmdCopyBufferToImage2KHR(android::base::BumpPool* pool,
-                                    VkCommandBuffer commandBuffer,
-                                    const VkCopyBufferToImageInfo2KHR* pCopyBufferToImageInfo,
-                                    const VkDecoderContext& context);
-
-    void on_vkCmdCopyImage2KHR(android::base::BumpPool* pool,
-                           VkCommandBuffer commandBuffer,
-                           const VkCopyImageInfo2KHR* pCopyImageInfo);
-    void on_vkCmdCopyImageToBuffer2KHR(android::base::BumpPool* pool,
-                                   VkCommandBuffer commandBuffer,
-                                   const VkCopyImageToBufferInfo2KHR* pCopyImageToBufferInfo);
-
     void on_vkGetImageMemoryRequirements(android::base::BumpPool* pool, VkDevice device,
                                          VkImage image, VkMemoryRequirements* pMemoryRequirements);
 
@@ -406,6 +382,7 @@ class VkDecoderGlobalState {
     struct HostFeatureSupport {
         bool supportsVulkan = false;
         bool supportsVulkan1_1 = false;
+        bool supportsExternalMemory = false;
         bool useDeferredCommands = false;
         bool useCreateResourcesWithRequirements = false;
         uint32_t apiVersion = 0;
@@ -454,9 +431,6 @@ class VkDecoderGlobalState {
 
     VkResult on_vkQueueSubmit(android::base::BumpPool* pool, VkQueue queue, uint32_t submitCount,
                               const VkSubmitInfo* pSubmits, VkFence fence);
-
-    VkResult on_vkQueueSubmit2(android::base::BumpPool* pool, VkQueue queue, uint32_t submitCount,
-                               const VkSubmitInfo2* pSubmits, VkFence fence);
 
     VkResult on_vkQueueWaitIdle(android::base::BumpPool* pool, VkQueue queue);
 
@@ -537,15 +511,6 @@ class VkDecoderGlobalState {
         const VkDescriptorImageInfo* pImageInfos, const VkDescriptorBufferInfo* pBufferInfos,
         const VkBufferView* pBufferViews);
 
-    void on_vkUpdateDescriptorSetWithTemplateSized2GOOGLE(
-        android::base::BumpPool* pool, VkDevice boxed_device, VkDescriptorSet descriptorSet,
-        VkDescriptorUpdateTemplate descriptorUpdateTemplate, uint32_t imageInfoCount,
-        uint32_t bufferInfoCount, uint32_t bufferViewCount, uint32_t inlineUniformBlockCount,
-        const uint32_t* pImageInfoEntryIndices, const uint32_t* pBufferInfoEntryIndices,
-        const uint32_t* pBufferViewEntryIndices, const VkDescriptorImageInfo* pImageInfos,
-        const VkDescriptorBufferInfo* pBufferInfos, const VkBufferView* pBufferViews,
-        const uint8_t* pInlineUniformBlockData);
-
     VkResult on_vkBeginCommandBuffer(android::base::BumpPool* pool, VkCommandBuffer commandBuffer,
                                      const VkCommandBufferBeginInfo* pBeginInfo,
                                      const VkDecoderContext& context);
@@ -619,9 +584,6 @@ class VkDecoderGlobalState {
     void on_vkQueueSubmitAsyncGOOGLE(android::base::BumpPool* pool, VkQueue queue,
                                      uint32_t submitCount, const VkSubmitInfo* pSubmits,
                                      VkFence fence);
-    void on_vkQueueSubmitAsync2GOOGLE(android::base::BumpPool* pool, VkQueue queue,
-                                      uint32_t submitCount, const VkSubmitInfo2* pSubmits,
-                                      VkFence fence);
     void on_vkQueueWaitIdleAsyncGOOGLE(android::base::BumpPool* pool, VkQueue queue);
     void on_vkQueueBindSparseAsyncGOOGLE(android::base::BumpPool* pool, VkQueue queue,
                                          uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo,
@@ -920,6 +882,75 @@ class BoxedHandleUnwrapAndDeletePreserveBoxedMapping : public VulkanHandleMappin
 
     android::base::BumpPool* mPool = nullptr;
     uint64_t** mPreserveBufPtr = nullptr;
+};
+
+template <class TDispatch>
+class ExternalFencePool {
+   public:
+    ExternalFencePool(TDispatch* dispatch, VkDevice device)
+        : m_vk(dispatch), mDevice(device), mMaxSize(5) {}
+
+    ~ExternalFencePool() {
+        if (!mPool.empty()) {
+            GFXSTREAM_ABORT(FatalError(ABORT_REASON_OTHER))
+                << "External fence pool for device " << static_cast<void*>(mDevice)
+                << " destroyed but " << mPool.size() << " fences still not destroyed.";
+        }
+    }
+
+    void add(VkFence fence) {
+        AutoLock lock(mLock);
+        mPool.push_back(fence);
+        if (mPool.size() > mMaxSize) {
+            INFO("External fence pool for %p has increased to size %d", mDevice, mPool.size());
+            mMaxSize = mPool.size();
+        }
+    }
+
+    VkFence pop(const VkFenceCreateInfo* pCreateInfo) {
+        VkFence fence = VK_NULL_HANDLE;
+        {
+            AutoLock lock(mLock);
+            auto it = std::find_if(mPool.begin(), mPool.end(), [this](const VkFence& fence) {
+                VkResult status = m_vk->vkGetFenceStatus(mDevice, fence);
+                if (status != VK_SUCCESS) {
+                    if (status != VK_NOT_READY) {
+                        VK_CHECK(status);
+                    }
+
+                    // Status is valid, but fence is not yet signaled
+                    return false;
+                }
+                return true;
+            });
+            if (it == mPool.end()) {
+                return VK_NULL_HANDLE;
+            }
+
+            fence = *it;
+            mPool.erase(it);
+        }
+
+        if (!(pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT)) {
+            VK_CHECK(m_vk->vkResetFences(mDevice, 1, &fence));
+        }
+
+        return fence;
+    }
+
+    std::vector<VkFence> popAll() {
+        AutoLock lock(mLock);
+        std::vector<VkFence> popped = mPool;
+        mPool.clear();
+        return popped;
+    }
+
+   private:
+    TDispatch* m_vk;
+    VkDevice mDevice;
+    Lock mLock;
+    std::vector<VkFence> mPool;
+    int mMaxSize;
 };
 
 }  // namespace vk

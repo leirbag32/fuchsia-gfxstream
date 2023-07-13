@@ -28,8 +28,7 @@ using android::base::BufferQueue;
 // RenderThread instance.
 class RenderChannelImpl final : public RenderChannel {
 public:
-    explicit RenderChannelImpl(android::base::Stream* loadStream = nullptr,
-                               uint32_t contextId = -1);
+    explicit RenderChannelImpl(android::base::Stream* loadStream = nullptr);
     ~RenderChannelImpl();
 
     /////////////////////////////////////////////////////////////////
@@ -52,17 +51,11 @@ public:
     // Try to send a buffer from the guest to the host render thread.
     virtual IoResult tryWrite(Buffer&& buffer) override final;
 
-    // Blocking call that waits until a buffer is ready to be sent from guest to host.
-    virtual void waitUntilWritable() override final;
-
     // Try to read a buffer from the host render thread into the guest.
     virtual IoResult tryRead(Buffer* buffer) override final;
 
     // Read a buffer from the host render thread into the guest.
     virtual IoResult readBefore(Buffer* buffer, Duration waitUntilUs) override final;
-
-    // Blocking call that waits until a buffer is ready to be read from host to guest.
-    virtual void waitUntilReadable() override final;
 
     // Close the channel from the guest.
     virtual void stop() override final;

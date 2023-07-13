@@ -48,23 +48,29 @@ class ContextHelper {
 class RecursiveScopedContextBind {
   public:
     RecursiveScopedContextBind(ContextHelper* helper) : mHelper(helper) {
-        mIsBound = helper->setupContext();
+        if (helper->isBound()) return;
+        if (!helper->setupContext()) {
+            mHelper = nullptr;
+            return;
+        }
+        mNeedUnbind = true;
     }
 
-    bool isOk() const { return mIsBound; }
+    bool isOk() const { return mHelper != nullptr; }
 
     ~RecursiveScopedContextBind() { release(); }
 
     void release() {
-        if (mIsBound) {
+        if (mNeedUnbind) {
             mHelper->teardownContext();
-            mIsBound = false;
+            mNeedUnbind = false;
         }
+        mHelper = nullptr;
     }
 
   private:
     ContextHelper* mHelper;
-    bool mIsBound = false;
+    bool mNeedUnbind = false;
 };
 
 }  // namespace gfxstream

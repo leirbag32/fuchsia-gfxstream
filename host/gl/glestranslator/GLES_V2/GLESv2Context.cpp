@@ -64,10 +64,10 @@ void GLESv2Context::initGlobal(EGLiface* iface) {
     GLEScontext::initGlobal(iface);
 }
 
-void GLESv2Context::init(bool nativeTextureDecompressionEnabled) {
+void GLESv2Context::init() {
     android::base::AutoLock mutex(s_lock);
     if(!m_initialized) {
-        GLEScontext::init(nativeTextureDecompressionEnabled);
+        GLEScontext::init();
         addVertexArrayObject(0);
         setVertexArrayObject(0);
         setAttribute0value(0.0, 0.0, 0.0, 1.0);
@@ -236,7 +236,6 @@ const GLESpointer* GLESv2Context::getPointer(GLenum arrType) {
 }
 
 void GLESv2Context::postLoadRestoreCtx() {
-    initExtensionString();
     GLDispatch& dispatcher = GLEScontext::dispatcher();
     m_useProgramData = shareGroup()->getObjectDataPtr(
             NamedObjectType::SHADER_OR_PROGRAM, m_useProgram);
@@ -775,8 +774,6 @@ void InitExtensionString(GLSupport& glSupport, std::string& ext) {
     if (glSupport.GL_OES_STANDARD_DERIVATIVES) ext += "GL_OES_standard_derivatives ";
     if (glSupport.GL_OES_TEXTURE_NPOT) ext += "GL_OES_texture_npot ";
     if (glSupport.GL_OES_RGB8_RGBA8) ext += "GL_OES_rgb8_rgba8 ";
-    if (glSupport.ext_GL_OVR_multiview2) ext += "GL_OVR_multiview2 ";
-    if (glSupport.ext_GL_EXT_multiview_texture_multisample) ext += "GL_EXT_multiview_texture_multisample ";
     if (glSupport.ext_GL_EXT_color_buffer_float) ext += "GL_EXT_color_buffer_float ";
     if (glSupport.ext_GL_EXT_color_buffer_half_float) ext += "GL_EXT_color_buffer_half_float ";
     if (glSupport.ext_GL_EXT_shader_framebuffer_fetch) ext += "GL_EXT_shader_framebuffer_fetch ";
@@ -792,22 +789,18 @@ void InitExtensionString(GLSupport& glSupport, std::string& ext) {
     if (glSupport.ext_GL_EXT_draw_buffers_indexed) {
         ext += "GL_EXT_draw_buffers_indexed ";
     }
-    if (glSupport.ext_GL_EXT_clip_cull_distance) {
-        ext += "GL_EXT_clip_cull_distance ";
-    }
 }
 
 void GLESv2Context::initExtensionString() {
     if (m_glesMajorVersion == 3 && m_glesMinorVersion == 1) {
         if (s_glExtensionsGles31Initialized) return;
-        initCapsLocked((const GLubyte*)getHostExtensionsString(&s_glDispatch).c_str(),
-                       m_nativeTextureDecompressionEnabled, s_glSupportGles31);
+        initCapsLocked((const GLubyte*)getHostExtensionsString(&s_glDispatch).c_str(), s_glSupportGles31);
         InitExtensionString(s_glSupportGles31, *s_glExtensionsGles31);
         s_glExtensionsGles31Initialized = true;
     } else {
         if (s_glExtensionsInitialized) return;
         initCapsLocked((const GLubyte*)getHostExtensionsString(&s_glDispatch).c_str(),
-                       m_nativeTextureDecompressionEnabled, s_glSupport);
+                       s_glSupport);
         InitExtensionString(s_glSupport, *s_glExtensions);
         s_glExtensionsInitialized = true;
     }

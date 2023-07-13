@@ -242,11 +242,6 @@ std::unique_ptr<EmulationGl> EmulationGl::create(uint32_t width, uint32_t height
         return nullptr;
     }
 
-    if (s_egl.eglSetNativeTextureDecompressionEnabledANDROID) {
-        s_egl.eglSetNativeTextureDecompressionEnabledANDROID(
-            emulationGl->mEglDisplay, feature_is_enabled(kFeature_NativeTextureDecompression));
-    }
-
     s_egl.eglBindAPI(EGL_OPENGL_ES_API);
 
 #ifdef ENABLE_GL_LOG

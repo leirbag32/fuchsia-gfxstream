@@ -18,7 +18,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "goldfish_vk_dispatch.h"
+#include "vulkan/cereal/common/goldfish_vk_dispatch.h"
 #include "vulkan/vulkan.h"
 
 namespace gfxstream {

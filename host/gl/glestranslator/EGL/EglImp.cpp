@@ -31,7 +31,6 @@
 #include "aemu/base/system/System.h"
 #include "aemu/base/SharedLibrary.h"
 #include "host-common/GfxstreamFatalError.h"
-#include "host-common/emugl_vm_operations.h"
 #include "host-common/logging.h"
 
 #include "EglWindowSurface.h"
@@ -130,7 +129,6 @@ EGLAPI void EGLAPIENTRY eglWaitImageFenceANDROID(EGLDisplay display, void* fence
 EGLAPI void EGLAPIENTRY eglAddLibrarySearchPathANDROID(const char* path);
 EGLAPI EGLBoolean EGLAPIENTRY eglQueryVulkanInteropSupportANDROID(void);
 EGLAPI EGLBoolean EGLAPIENTRY eglGetSyncAttribKHR(EGLDisplay display, EGLSyncKHR sync, EGLint attribute, EGLint *value);
-EGLAPI EGLBoolean EGLAPIENTRY eglSetNativeTextureDecompressionEnabledANDROID(EGLDisplay display, EGLBoolean enabled);
 
 EGLAPI EGLBoolean EGLAPIENTRY eglSaveConfig(EGLDisplay display, EGLConfig config, EGLStreamKHR stream);
 EGLAPI EGLConfig EGLAPIENTRY eglLoadConfig(EGLDisplay display, EGLStreamKHR stream);
@@ -192,8 +190,6 @@ static const ExtensionDescriptor s_eglExtensions[] = {
                 (__eglMustCastToProperFunctionPointerType)eglQueryVulkanInteropSupportANDROID },
         {"eglGetSyncAttribKHR",
                 (__eglMustCastToProperFunctionPointerType)eglGetSyncAttribKHR },
-        {"eglSetNativeTextureDecompressionEnabledANDROID",
-                (__eglMustCastToProperFunctionPointerType)eglSetNativeTextureDecompressionEnabledANDROID },
 };
 
 static const int s_eglExtensionsSize =
@@ -1179,8 +1175,7 @@ EGLAPI EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display,
 
             thread->updateInfo(newCtx,dpy,newCtx->getGlesContext(),newCtx->getShareGroup(),dpy->getManager(newCtx->version()));
             newCtx->setSurfaces(newReadSrfc,newDrawSrfc);
-            g_eglInfo->getIface(newCtx->version())->initContext(newCtx->getGlesContext(), newCtx->getShareGroup(),
-                                                                dpy->nativeTextureDecompressionEnabled());
+            g_eglInfo->getIface(newCtx->version())->initContext(newCtx->getGlesContext(),newCtx->getShareGroup());
             g_eglInfo->sweepDestroySurfaces();
         }
 
@@ -1392,40 +1387,39 @@ EGLAPI EGLImageKHR EGLAPIENTRY eglCreateImageKHR(EGLDisplay display, EGLContext 
 {
     VALIDATE_DISPLAY(display);
 
-    if (target != EGL_GL_TEXTURE_2D_KHR) {
-        // Create image from underlying and add to registry
-        EGLImage image = dpy->createNativeImage(dpy->getHostDriverDisplay(), 0, target, buffer, attrib_list);
+	if (target != EGL_GL_TEXTURE_2D_KHR) {
+		// Create image from underlying and add to registry
+		EGLImage image = dpy->createNativeImage(dpy->getHostDriverDisplay(), 0, target, buffer, attrib_list);
 
-        if (image == EGL_NO_IMAGE_KHR) {
-            return EGL_NO_IMAGE_KHR;
-        }
+		if (image == EGL_NO_IMAGE_KHR) {
+			return EGL_NO_IMAGE_KHR;
+		}
 
-        ImagePtr img( new EglImage() );
-        img->isNative = true;
-        img->nativeImage = image;
-        img->width = 0;
-        img->height = 0;
-        if (attrib_list) {
-            const EGLint* current = attrib_list;
-            while (EGL_NONE != *current) {
-                switch (*current) {
-                    case EGL_WIDTH:
-                        img->width = current[1];
-                        break;
-                    case EGL_HEIGHT:
-                        img->height = current[1];
-                        break;
-                    case EGL_LINUX_DRM_FOURCC_EXT:
-                        // TODO: Translate drm fourcc to internal format
-                        // img->fourcc = current[1];
-                        break;
-                }
-                current += 2;
-            }
-        }
-        get_emugl_vm_operations().setSkipSnapshotSave(true);
-        return dpy->addImageKHR(img);
-    }
+		ImagePtr img( new EglImage() );
+		img->isNative = true;
+		img->nativeImage = image;
+		img->width = 0;
+		img->height = 0;
+		if (attrib_list) {
+			const EGLint* current = attrib_list;
+			while (EGL_NONE != *current) {
+				switch (*current) {
+					case EGL_WIDTH:
+						img->width = current[1];
+						break;
+					case EGL_HEIGHT:
+						img->height = current[1];
+						break;
+					case EGL_LINUX_DRM_FOURCC_EXT:
+					    // TODO: Translate drm fourcc to internal format
+						// img->fourcc = current[1];
+						break;
+				}
+				current += 2;
+			}
+		}
+		return dpy->addImageKHR(img);
+	}
 
     ThreadInfo* thread  = getThreadInfo();
     ShareGroupPtr sg = thread->shareGroup;
@@ -1656,13 +1650,6 @@ EGLAPI EGLBoolean EGLAPIENTRY eglQueryVulkanInteropSupportANDROID(void) {
     MEM_TRACE("EMUGL");
     const GLESiface* iface = g_eglInfo->getIface(GLES_2_0);
     return iface->vulkanInteropSupported() ? EGL_TRUE : EGL_FALSE;
-}
-
-EGLAPI EGLBoolean EGLAPIENTRY eglSetNativeTextureDecompressionEnabledANDROID(EGLDisplay display, EGLBoolean enabled) {
-    MEM_TRACE("EMUGL");
-    VALIDATE_DISPLAY_RETURN(display, EGL_FALSE);
-    dpy->setNativeTextureDecompressionEnabled(enabled == EGL_TRUE);
-    return EGL_TRUE;
 }
 
 /*********************************************************************************/

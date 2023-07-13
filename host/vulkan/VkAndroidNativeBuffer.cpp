@@ -22,8 +22,7 @@
 #include "VulkanDispatch.h"
 #include "cereal/common/goldfish_vk_deepcopy.h"
 #include "cereal/common/goldfish_vk_extension_structs.h"
-
-#include "goldfish_vk_private_defs.h"
+#include "cereal/common/goldfish_vk_private_defs.h"
 #include "host-common/GfxstreamFatalError.h"
 #include "host/FrameBuffer.h"
 #include "vulkan/vk_enum_string_helper.h"
@@ -134,15 +133,14 @@ VkResult prepareAndroidNativeBufferImage(VulkanDispatch* vk, VkDevice device,
 
     out->format = nativeBufferANDROID->format;
     out->stride = nativeBufferANDROID->stride;
-    out->colorBufferHandle = *static_cast<const uint32_t*>(nativeBufferANDROID->handle);
+    out->colorBufferHandle = *(nativeBufferANDROID->handle);
 
     bool externalMemoryCompatible = false;
 
     auto emu = getGlobalVkEmulation();
 
     if (emu && emu->live) {
-        externalMemoryCompatible = emu->deviceInfo.supportsExternalMemoryImport &&
-                                   emu->deviceInfo.supportsExternalMemoryExport;
+        externalMemoryCompatible = emu->deviceInfo.supportsExternalMemory;
     }
 
     bool colorBufferExportedToGl = false;
@@ -498,7 +496,6 @@ VkResult setAndroidNativeImageSemaphoreSignaled(VulkanDispatch* vk, VkDevice dev
                                                 Lock* defaultQueueLock, VkSemaphore semaphore,
                                                 VkFence fence, AndroidNativeBufferInfo* anbInfo) {
     auto fb = FrameBuffer::getFB();
-    auto emu = getGlobalVkEmulation();
 
     bool firstTimeSetup = !anbInfo->everSynced && !anbInfo->everAcquired;
 
@@ -519,16 +516,8 @@ VkResult setAndroidNativeImageSemaphoreSignaled(VulkanDispatch* vk, VkDevice dev
         AutoLock qlock(*defaultQueueLock);
         VK_CHECK(vk->vkQueueSubmit(defaultQueue, 1, &submitInfo, fence));
     } else {
-        // Setup queue state for this queue family index.
-        auto queueFamilyIndex = anbInfo->lastUsedQueueFamilyIndex;
-        if (queueFamilyIndex >= anbInfo->queueStates.size()) {
-            anbInfo->queueStates.resize(queueFamilyIndex + 1);
-        }
-        AndroidNativeBufferInfo::QueueState& queueState =
-            anbInfo->queueStates[queueFamilyIndex];
-        if (!queueState.queue) {
-            queueState.setup(vk, anbInfo->device, defaultQueue, queueFamilyIndex, defaultQueueLock);
-        }
+        const AndroidNativeBufferInfo::QueueState& queueState =
+            anbInfo->queueStates[anbInfo->lastUsedQueueFamilyIndex];
 
         // If we used the Vulkan image without copying it back
         // to the CPU, reset the layout to PRESENT.
@@ -541,10 +530,6 @@ VkResult setAndroidNativeImageSemaphoreSignaled(VulkanDispatch* vk, VkDevice dev
             };
 
             vk->vkBeginCommandBuffer(queueState.cb2, &beginInfo);
-
-            emu->debugUtilsHelper.cmdBeginDebugLabel(queueState.cb2,
-                                                     "vkAcquireImageANDROID(ColorBuffer:%d)",
-                                                     anbInfo->colorBufferHandle);
 
             VkImageMemoryBarrier queueTransferBarrier = {
                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -567,9 +552,6 @@ VkResult setAndroidNativeImageSemaphoreSignaled(VulkanDispatch* vk, VkDevice dev
             vk->vkCmdPipelineBarrier(queueState.cb2, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr,
                                      1, &queueTransferBarrier);
-
-            emu->debugUtilsHelper.cmdEndDebugLabel(queueState.cb2);
-
             vk->vkEndCommandBuffer(queueState.cb2);
 
             VkSubmitInfo submitInfo = {
@@ -636,8 +618,6 @@ VkResult syncImageToColorBuffer(VulkanDispatch* vk, uint32_t queueFamilyIndex, V
         queueState.setup(vk, anbInfo->device, queue, queueFamilyIndex, queueLock);
     }
 
-    auto emu = getGlobalVkEmulation();
-
     // Record our synchronization commands.
     VkCommandBufferBeginInfo beginInfo = {
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -647,10 +627,6 @@ VkResult syncImageToColorBuffer(VulkanDispatch* vk, uint32_t queueFamilyIndex, V
     };
 
     vk->vkBeginCommandBuffer(queueState.cb, &beginInfo);
-
-    emu->debugUtilsHelper.cmdBeginDebugLabel(queueState.cb,
-                                             "vkQueueSignalReleaseImageANDROID(ColorBuffer:%d)",
-                                             anbInfo->colorBufferHandle);
 
     // If using the Vulkan image directly (rather than copying it back to
     // the CPU), change its layout for that use.
@@ -750,8 +726,6 @@ VkResult syncImageToColorBuffer(VulkanDispatch* vk, uint32_t queueFamilyIndex, V
                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1,
                                  &backToPresentSrc);
     }
-
-    emu->debugUtilsHelper.cmdEndDebugLabel(queueState.cb);
 
     vk->vkEndCommandBuffer(queueState.cb);
 

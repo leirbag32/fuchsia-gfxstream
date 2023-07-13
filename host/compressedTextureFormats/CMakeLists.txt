@@ -6,19 +6,11 @@ endif()
 
 add_library(
     gfxstream-compressedTextures
-    ${astc-cpu-decompressor-sources})
-
-target_link_libraries(
-    gfxstream-compressedTextures
-    PRIVATE
-    gfxstream_etc)
+    ${astc-cpu-decompressor-sources}
+    etc.cpp)
 
 if(ASTC_CPU_DECODING)
-    if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
-        target_link_libraries(gfxstream-compressedTextures PRIVATE astcdec-native-static)
-    else()
-        target_link_libraries(gfxstream-compressedTextures PRIVATE astcdec-avx2-static)
-    endif()
+    target_link_libraries(gfxstream-compressedTextures PRIVATE astcdec-avx2-static)
 endif()
 
 

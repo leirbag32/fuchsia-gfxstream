@@ -19,6 +19,7 @@
 #include "aemu/base/synchronization/Lock.h"
 #include "aemu/base/containers/Lookup.h"
 #include "aemu/base/files/StreamSerializing.h"
+#include "host-common/feature_control.h"
 #include "host-common/logging.h"
 
 #include <GLcommon/GLconversion_macros.h>
@@ -401,10 +402,8 @@ void GLEScontext::initGlobal(EGLiface* iface) {
     s_lock.unlock();
 }
 
-void GLEScontext::init(bool nativeTextureDecompressionEnabled) {
+void GLEScontext::init() {
     if (!m_initialized) {
-        m_nativeTextureDecompressionEnabled = nativeTextureDecompressionEnabled;
-
         initExtensionString();
 
         m_maxTexUnits = getMaxCombinedTexUnits();
@@ -1793,7 +1792,7 @@ void GLEScontext::releaseGlobalLock() {
     s_lock.unlock();
 }
 
-void GLEScontext::initCapsLocked(const GLubyte * extensionString, bool nativeTextureDecompressionEnabled, GLSupport& glSupport)
+void GLEScontext::initCapsLocked(const GLubyte * extensionString, GLSupport& glSupport)
 {
     const char* cstring = (const char*)extensionString;
 
@@ -1827,7 +1826,7 @@ void GLEScontext::initCapsLocked(const GLubyte * extensionString, bool nativeTex
     s_glDispatch.glGetIntegerv(GL_MAX_VERTEX_ATTRIB_BINDINGS, &glSupport.maxVertexAttribBindings);
 
     // Compressed texture format query
-    if (nativeTextureDecompressionEnabled) {
+    if(feature_is_enabled(kFeature_NativeTextureDecompression)) {
         bool hasEtc2Support = false;
         bool hasAstcSupport = false;
         int numCompressedFormats = 0;
@@ -1951,14 +1950,6 @@ void GLEScontext::initCapsLocked(const GLubyte * extensionString, bool nativeTex
         strstr(cstring,"GL_EXT_color_buffer_half_float")!=NULL)
         glSupport.ext_GL_EXT_color_buffer_half_float = true;
 
-    if (strstr(cstring,"GL_OVR_multiview2")!=NULL) {
-        glSupport.ext_GL_OVR_multiview2 = true;
-    }
-
-    if (strstr(cstring,"GL_EXT_multiview_texture_multisample")!=NULL) {
-        glSupport.ext_GL_EXT_multiview_texture_multisample = true;
-    }
-
     if (strstr(cstring,"GL_EXT_shader_framebuffer_fetch")!=NULL) {
         glSupport.ext_GL_EXT_shader_framebuffer_fetch = true;
     }
@@ -1984,10 +1975,6 @@ void GLEScontext::initCapsLocked(const GLubyte * extensionString, bool nativeTex
 
     if (strstr(cstring, "GL_EXT_draw_buffers_indexed") != NULL) {
         glSupport.ext_GL_EXT_draw_buffers_indexed = true;
-    }
-
-    if (strstr(cstring, "GL_EXT_clip_cull_distance") != NULL) {
-        glSupport.ext_GL_EXT_clip_cull_distance = true;
     }
 
     // ASTC

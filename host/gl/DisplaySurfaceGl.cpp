@@ -14,10 +14,6 @@
 
 #include "DisplaySurfaceGl.h"
 
-#include <vector>
-
-#include <stdio.h>
-
 #include "OpenGLESDispatch/DispatchTables.h"
 #include "OpenGLESDispatch/EGLDispatch.h"
 #include "host-common/GfxstreamFatalError.h"
@@ -29,18 +25,6 @@ namespace {
 
 using emugl::ABORT_REASON_OTHER;
 using emugl::FatalError;
-
-struct PreviousContextInfo {
-    EGLContext context = EGL_NO_CONTEXT;
-    EGLSurface readSurface = EGL_NO_SURFACE;
-    EGLSurface drawSurface = EGL_NO_SURFACE;
-};
-
-struct ThreadState {
-    std::vector<PreviousContextInfo> previousContexts;
-};
-
-static thread_local ThreadState sThreadState;
 
 class DisplaySurfaceGlContextHelper : public ContextHelper {
   public:
@@ -65,73 +49,65 @@ class DisplaySurfaceGlContextHelper : public ContextHelper {
     }
 
     bool setupContext() override {
-        auto& previousContexts = sThreadState.previousContexts;
-
         EGLContext currentContext = s_egl.eglGetCurrentContext();
         EGLSurface currentDrawSurface = s_egl.eglGetCurrentSurface(EGL_DRAW);
         EGLSurface currentReadSurface = s_egl.eglGetCurrentSurface(EGL_READ);
 
-        bool needsUpdate = (currentContext != mContext ||
-                            currentDrawSurface != mSurface ||
-                            currentReadSurface != mSurface);
-
-        if (needsUpdate) {
-            if (!previousContexts.empty()) {
-                ERR("DisplaySurfaceGlContextHelper context was preempted by others, "
-                    "current=%p, needed=%p, thread=%p", currentContext, mContext, &sThreadState);
-                // Fall through to attempt to recover from error.
-            }
-
+        if (currentContext != mContext ||
+            currentDrawSurface != mSurface ||
+            currentReadSurface != mSurface) {
             if (!s_egl.eglMakeCurrent(mDisplay, mSurface, mSurface, mContext)) {
                 // b/284523053
                 // Legacy swiftshader logspam on exit with this line.
                 GL_LOG("Failed to make display surface context current: %d", s_egl.eglGetError());
-                // Fall through to allow adding previous context to stack.
+                return false;
             }
         }
 
-        previousContexts.push_back(
-            {.context = currentContext,
-             .readSurface = currentReadSurface,
-             .drawSurface = currentDrawSurface});
-        return true;
+        mPreviousContext = currentContext;
+        mPreviousDrawSurface = currentDrawSurface;
+        mPreviousReadSurface = currentReadSurface;
+
+        mIsBound = true;
+
+        return mIsBound;
     }
 
     void teardownContext() override {
-        auto& previousContexts = sThreadState.previousContexts;
-
         EGLContext currentContext = s_egl.eglGetCurrentContext();
         EGLSurface currentDrawSurface = s_egl.eglGetCurrentSurface(EGL_DRAW);
         EGLSurface currentReadSurface = s_egl.eglGetCurrentSurface(EGL_READ);
 
-        PreviousContextInfo newContext;
-        if (!previousContexts.empty()) {
-            newContext = previousContexts.back();
-            previousContexts.pop_back();
+        if (currentContext != mPreviousContext ||
+            currentDrawSurface != mPreviousDrawSurface ||
+            currentReadSurface != mPreviousReadSurface) {
+            if (!s_egl.eglMakeCurrent(mDisplay,
+                                      mPreviousDrawSurface,
+                                      mPreviousReadSurface,
+                                      mPreviousContext)) {
+                ERR("Failed to make restore previous context: %d", s_egl.eglGetError());
+                return;
+            }
         }
 
-        bool needsUpdate = (currentContext != newContext.context ||
-                            currentDrawSurface != newContext.drawSurface ||
-                            currentReadSurface != newContext.readSurface);
-
-        if (!needsUpdate) {
-            return;
-        }
-
-        if (!s_egl.eglMakeCurrent(mDisplay,
-                                  newContext.drawSurface,
-                                  newContext.readSurface,
-                                  newContext.context)) {
-            ERR("Failed to restore previous context: %d", s_egl.eglGetError());
-        }
+        mPreviousContext = EGL_NO_CONTEXT;
+        mPreviousDrawSurface = EGL_NO_SURFACE;
+        mPreviousReadSurface = EGL_NO_SURFACE;
+        mIsBound = false;
     }
 
-    bool isBound() const override { return !sThreadState.previousContexts.empty(); }
+    bool isBound() const override { return mIsBound; }
 
   private:
     EGLDisplay mDisplay = EGL_NO_DISPLAY;
     EGLSurface mSurface = EGL_NO_SURFACE;
     EGLContext mContext = EGL_NO_CONTEXT;
+
+    EGLContext mPreviousContext = EGL_NO_CONTEXT;
+    EGLSurface mPreviousReadSurface = EGL_NO_SURFACE;
+    EGLSurface mPreviousDrawSurface = EGL_NO_SURFACE;
+
+    bool mIsBound = false;
 };
 
 }  // namespace

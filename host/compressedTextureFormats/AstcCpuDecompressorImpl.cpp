@@ -19,8 +19,7 @@
 #include "AstcCpuDecompressor.h"
 #include "astcenc.h"
 
-namespace gfxstream {
-namespace vk {
+namespace goldfish_vk {
 namespace {
 
 constexpr uint32_t kNumThreads = 2;
@@ -72,11 +71,7 @@ bool cpuSupportsAvx2()
     }
     return false;
 }
-#elif defined(__aarch64__)
-bool cpuSupportsAvx2()
-{
-    return false;
-}
+
 #else
 // AVX2 support detection for GCC and Clang
 #include <cpuid.h>
@@ -278,5 +273,4 @@ AstcCpuDecompressor& AstcCpuDecompressor::get() {
     return instance;
 }
 
-}  // namespace vk
-}  // namespace gfxstream
+}  // namespace goldfish_vk

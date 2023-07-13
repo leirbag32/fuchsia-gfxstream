@@ -1,9 +1,7 @@
 if (LINUX AND DEPENDENCY_RESOLUTION STREQUAL "DOWNLOAD")
     set(
         gfxstream-magma-server-backend-sources
-        Connection.cpp
         DrmBuffer.cpp
-        DrmContext.cpp
         DrmDevice.cpp
         IntelDrmDecoder.cpp)
     set(

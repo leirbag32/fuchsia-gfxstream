@@ -16,10 +16,11 @@
 
 #pragma once
 
-#include "GLcommon/GLEScontext.h"
 #include "GLcommon/ObjectData.h"
 
 #include <vector>
+
+struct BufferBinding;
 
 class TransformFeedbackData : public ObjectData {
 public:

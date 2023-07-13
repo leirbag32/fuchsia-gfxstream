@@ -2,7 +2,6 @@
 //     CONSULT THE OWNERS AND opensource-licensing@google.com BEFORE
 //     DEPENDING ON IT IN YOUR PROJECT. ***
 package {
-    default_team: "trendy_team_android_developer_tools",
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
     // all of the 'license_kinds' from "hardware_google_gfxstream_license"
@@ -19,56 +18,45 @@ package {
 
 cc_library_shared {
     name: "libgfxstream_backend",
-    defaults: ["gfxstream_defaults"],
-    vendor_available: true,
+    defaults: [ "gfxstream_defaults" ],
     cflags: [
         "-Wno-unused-parameter",
         "-Wno-unused-variable",
         "-Wno-unused-function",
         "-Wno-unreachable-code-loop-increment",
     ],
-    header_libs: [
-        "gfxstream_opengl_headers",
-        "libgfxstream_host_vulkan_cereal_common",
-    ],
     static_libs: [
         "gfxstream_base",
         "gfxstream_host_common",
-        "libgfxstream_common_utils",
-        "libgfxstream_etc",
-        "libgfxstream_glestranslator_egl",
-        "libgfxstream_glestranslator_glescm",
-        "libgfxstream_glestranslator_glesv2",
-        "libgfxstream_host_apigen_codec_common",
-        "libgfxstream_host_compressedtextures",
-        "libgfxstream_host_dispatch",
-        "libgfxstream_host_gl_host_common",
-        "libgfxstream_host_gl_server",
-        "libgfxstream_host_gles1_dec",
-        "libgfxstream_host_gles2_dec",
-        "libgfxstream_host_glestranslator_glcommon",
-        "libgfxstream_host_glsnapshot",
-        "libgfxstream_host_magma_dec",
-        "libgfxstream_host_magma_server",
-        "libgfxstream_host_rendercontrol_dec",
-        "libgfxstream_host_vulkan_cereal",
-        "libgfxstream_host_vulkan_emulatedtextures",
-        "libgfxstream_host_vulkan_server",
-        "libgfxstream_thirdparty_glm",
+        "gfxstream_gl_host_common",
+        "gfxstream_apigen_codec_common",
+        "gfxstream_gl_server",
+        "gfxstream_gles1_dec",
+        "gfxstream_gles2_dec",
+        "gfxstream_glsnapshot",
+        "gfxstream_magma_dec",
+        "gfxstream_magma_server",
+        "gfxstream_translator_glcommon",
+        "gfxstream_translator_egl",
+        "gfxstream_translator_glescm",
+        "gfxstream_translator_glesv2",
+        "gfxstream_vulkan_cereal_host",
+        "gfxstream_vulkan_server",
+        "gfxstream_renderControl_dec",
+        "gfxstream_dispatch",
+        "gfxstream_glm",
+        "gfxstream_compressedTextures",
+        "gfxstream_emulated_textures",
     ],
     export_static_lib_headers: [
         "gfxstream_base",
-        "libgfxstream_host_gl_host_common",
-        "libgfxstream_host_gles2_dec",
-        "libgfxstream_host_glsnapshot",
-        "libgfxstream_host_magma_server",
-        "libgfxstream_host_vulkan_cereal",
+        "gfxstream_gles2_dec",
+        "gfxstream_glsnapshot",
+        "gfxstream_magma_server",
+        "gfxstream_vulkan_cereal_host",
     ],
     shared_libs: [
         "liblog", // gfxstream_base uses this via perfetto-libperfettobase
-    ],
-    export_include_dirs: [
-        "include",
     ],
     srcs: [
         "Buffer.cpp",
@@ -96,7 +84,6 @@ cc_library_shared {
         "FrameBuffer.cpp",
         "GfxStreamAgents.cpp",
         "virtio-gpu-gfxstream-renderer.cpp",
-        "virtio-gpu-gfxstream-renderer-goldfish.cpp",
         "VirtioGpuTimelines.cpp",
         "VsyncThread.cpp",
     ],
@@ -105,12 +92,12 @@ cc_library_shared {
     ],
     target: {
         host: {
-            srcs: ["NativeSubWindow_x11.cpp"],
+            srcs: ["NativeSubWindow_x11.cpp",],
         },
         android: {
-            srcs: ["NativeSubWindow_android.cpp"],
-        },
-    },
+            srcs: ["NativeSubWindow_android.cpp",],
+        }
+    }
 }
 
 cc_test_library {
@@ -125,24 +112,20 @@ cc_test_library {
         "tests/SampleApplication.cpp",
         "tests/ShaderUtils.cpp",
     ],
-    header_libs: [
-        "gfxstream_opengl_headers",
-        "libgfxstream_host_vulkan_cereal_common",
-    ],
     shared_libs: [
         "libbase",
         "libgfxstream_backend",
     ],
     export_static_lib_headers: [
-        "libgfxstream_oswindow_test_support",
+        "gfxstream_oswindow_test_support",
     ],
     static_libs: [
-        "libgfxstream_host_apigen_codec_common",
+        "gfxstream_apigen_codec_common",
         "gfxstream_base",
         "gfxstream_base_test_support",
         "gfxstream_host_common_test_support",
         "gfxstream_snapshot",
-        "libgfxstream_oswindow_test_support",
+        "gfxstream_oswindow_test_support",
         "libgmock",
         "liblz4",
     ],
@@ -151,12 +134,12 @@ cc_test_library {
 
 cc_library {
     name: "libgfxstream_test_image_utils",
-    defaults: ["gfxstream_defaults"],
+    defaults: [ "gfxstream_defaults" ],
     shared_libs: [
         "libbase",
     ],
     static_libs: [
-        "libgfxstream_thirdparty_stb",
+        "libgfxstream_stb",
     ],
     srcs: [
         "tests/ImageUtils.cpp",
@@ -166,10 +149,7 @@ cc_library {
 // Run with `atest --host gfxstream_compositorvk_test`
 cc_test_host {
     name: "gfxstream_compositorvk_test",
-    defaults: ["gfxstream_defaults"],
-    header_libs: [
-        "libgfxstream_host_vulkan_cereal_common",
-    ],
+    defaults: [ "gfxstream_defaults" ],
     srcs: [
         "tests/CompositorVk_unittest.cpp",
     ],
@@ -190,9 +170,6 @@ cc_test_host {
         "tests/testdata/256x256_golden_multiple_targets_7.png",
         "tests/testdata/256x256_golden_multiple_targets_8.png",
         "tests/testdata/256x256_golden_multiple_targets_9.png",
-        "tests/testdata/256x256_golden_solid_color.png",
-        "tests/testdata/256x256_golden_solid_color_above.png",
-        "tests/testdata/256x256_golden_solid_color_below.png",
         "tests/testdata/256x256_golden_transform_none.png",
         "tests/testdata/256x256_golden_transform_fliph.png",
         "tests/testdata/256x256_golden_transform_flipv.png",
@@ -208,8 +185,8 @@ cc_test_host {
         "libgfxstream_test_image_utils",
     ],
     static_libs: [
-        "libgfxstream_host_vulkan_server",
-        "libgfxstream_thirdparty_glm",
+        "gfxstream_vulkan_server",
+        "gfxstream_glm",
         "libc++fs",
     ],
     test_options: {
@@ -224,10 +201,7 @@ cc_test_host {
 // Run with `atest --host gfxstream_framebuffer_tests`
 cc_test_host {
     name: "gfxstream_framebuffer_tests",
-    defaults: ["gfxstream_defaults"],
-    header_libs: [
-        "libgfxstream_host_vulkan_cereal_common",
-    ],
+    defaults: [ "gfxstream_defaults" ],
     srcs: [
         "tests/FrameBuffer_unittest.cpp",
     ],
@@ -240,11 +214,11 @@ cc_test_host {
         "gfxstream_backend_test_support",
         "gfxstream_base",
         "gfxstream_base_test_support",
-        "libgfxstream_thirdparty_glm",
+        "gfxstream_glm",
         "gfxstream_host_common_test_support",
-        "libgfxstream_oswindow_test_support",
+        "gfxstream_oswindow_test_support",
         "gfxstream_snapshot",
-        "libgfxstream_host_vulkan_server",
+        "gfxstream_vulkan_server",
         "libgmock",
         "liblz4",
     ],
@@ -259,7 +233,7 @@ cc_test_host {
 
 cc_test_host {
     name: "gfxstream_magma_tests",
-    defaults: ["gfxstream_defaults"],
+    defaults: [ "gfxstream_defaults" ],
     srcs: [
         "tests/Magma_unittest.cpp",
     ],

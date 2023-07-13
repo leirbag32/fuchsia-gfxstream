@@ -68,7 +68,7 @@ EglGlobalInfo* EglGlobalInfo::getInstance(bool nullEgl) {
 }
 
 EglGlobalInfo::EglGlobalInfo(bool nullEgl) {
-#if defined(ANDROID) || defined(__QNX__)
+#ifdef ANDROID
     sEgl2Egl = true;
     sEgl2EglSyncSafeToUse = true;
     m_engine = EglOS::

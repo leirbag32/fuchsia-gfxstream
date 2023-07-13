@@ -20,8 +20,9 @@
 #include <vector>
 
 #include "host/vulkan/emulated_textures/AstcTexture.h"
+#include "host/vulkan/emulated_textures/AstcTexture.h"
 #include "host/vulkan/emulated_textures/GpuDecompressionPipeline.h"
-#include "goldfish_vk_dispatch.h"
+#include "vulkan/cereal/common/goldfish_vk_dispatch.h"
 #include "vulkan/vulkan.h"
 
 namespace gfxstream {
@@ -46,11 +47,6 @@ class CompressedImageInfo {
                                                      const CompressedImageInfo& srcImg,
                                                      const CompressedImageInfo& dstImg,
                                                      bool needEmulatedSrc, bool needEmulatedDst);
-    static VkImageCopy2 getCompressedMipmapsImageCopy(const VkImageCopy2& origRegion,
-                                                      const CompressedImageInfo& srcImg,
-                                                      const CompressedImageInfo& dstImg,
-                                                      bool needEmulatedSrc, bool needEmulatedDst);
-
 
     // Constructors
 
@@ -91,9 +87,6 @@ class CompressedImageInfo {
                          VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount,
                          const VkBufferImageCopy* pRegions, const VkDecoderContext& context);
 
-    void decompressOnCpu(VkCommandBuffer commandBuffer, uint8_t* srcAstcData, size_t astcDataSize,
-                         const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo, const VkDecoderContext& context);
-
     VkMemoryRequirements getMemoryRequirements() const;
 
     VkResult bindCompressedMipmapsMemory(VulkanDispatch* vk, VkDeviceMemory memory,
@@ -102,7 +95,6 @@ class CompressedImageInfo {
     // Given a VkBufferImageCopy object for the original image, returns a new
     // VkBufferImageCopy that points to the same location in the compressed mipmap images.
     VkBufferImageCopy getBufferImageCopy(const VkBufferImageCopy& origRegion) const;
-    VkBufferImageCopy2 getBufferImageCopy(const VkBufferImageCopy2& origRegion) const;
 
     // Releases all the resources used by this class. It may no longer be used after calling this.
     void destroy(VulkanDispatch* vk);

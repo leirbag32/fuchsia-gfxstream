@@ -3,14 +3,14 @@ package {
 }
 
 cc_library_static {
-    name: "libgfxstream_host_magma_server",
-    defaults: ["gfxstream_defaults"],
+    name: "gfxstream_magma_server",
+    defaults: [ "gfxstream_defaults" ],
     static_libs: [
         "gfxstream_base",
         "gfxstream_host_common",
-        "libgfxstream_host_magma_dec",
-        "libgfxstream_host_apigen_codec_common",
-        "libgfxstream_host_vulkan_cereal",
+        "gfxstream_magma_dec",
+        "gfxstream_apigen_codec_common",
+        "gfxstream_vulkan_cereal_host",
     ],
     srcs: [
         "Decoder.cpp",
@@ -22,9 +22,7 @@ cc_library_static {
     target: {
         android: {
             srcs: [
-                "Connection.cpp",
                 "DrmBuffer.cpp",
-                "DrmContext.cpp",
                 "DrmDevice.cpp",
                 "IntelDrmDecoder.cpp",
             ],
@@ -37,9 +35,7 @@ cc_library_static {
         },
         not_windows: {
             srcs: [
-                "Connection.cpp",
                 "DrmBuffer.cpp",
-                "DrmContext.cpp",
                 "DrmDevice.cpp",
                 "IntelDrmDecoder.cpp",
             ],
@@ -49,6 +45,6 @@ cc_library_static {
             cflags: [
                 "-DGFXSTREAM_MAGMA_USE_INTEL_DRM=1",
             ],
-        },
-    },
+        }
+    }
 }

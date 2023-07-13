@@ -45,7 +45,7 @@ static constexpr size_t kGuestToHostQueueCapacity = 1024U;
 #endif
 static constexpr size_t kHostToGuestQueueCapacity = 16U;
 
-RenderChannelImpl::RenderChannelImpl(android::base::Stream* loadStream, uint32_t contextId)
+RenderChannelImpl::RenderChannelImpl(android::base::Stream* loadStream)
     : mFromGuest(kGuestToHostQueueCapacity, mLock),
       mToGuest(kHostToGuestQueueCapacity, mLock) {
     if (loadStream) {
@@ -62,7 +62,7 @@ RenderChannelImpl::RenderChannelImpl(android::base::Stream* loadStream, uint32_t
     } else {
         updateStateLocked();
     }
-    mRenderThread.reset(new RenderThread(this, loadStream, contextId));
+    mRenderThread.reset(new RenderThread(this, loadStream));
     mRenderThread->start();
 }
 
@@ -93,11 +93,6 @@ IoResult RenderChannelImpl::tryWrite(Buffer&& buffer) {
     return result;
 }
 
-void RenderChannelImpl::waitUntilWritable() {
-    AutoLock lock(mLock);
-    mFromGuest.waitUntilPushableLocked();
-}
-
 IoResult RenderChannelImpl::tryRead(Buffer* buffer) {
     D("enter");
     AutoLock lock(mLock);
@@ -116,11 +111,6 @@ IoResult RenderChannelImpl::readBefore(Buffer* buffer, Duration waitUntilUs) {
     DD("mToGuest.popLockedBefore() returned %d, buffer size %d, state %d",
        (int)result, (int)buffer->size(), (int)mState);
     return result;
-}
-
-void RenderChannelImpl::waitUntilReadable() {
-    AutoLock lock(mLock);
-    mToGuest.waitUntilPopableLocked();
 }
 
 void RenderChannelImpl::stop() {

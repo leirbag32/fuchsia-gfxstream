@@ -17,7 +17,6 @@
 #include "RenderThreadInfo.h"
 
 #include "aemu/base/synchronization/Lock.h"
-#include "host-common/feature_control.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -61,41 +60,20 @@ void RenderThreadInfo::forAllRenderThreadInfos(std::function<void(RenderThreadIn
     }
 }
 
-#if GFXSTREAM_ENABLE_HOST_GLES
 void RenderThreadInfo::initGl() {
     m_glInfo.emplace();
 }
-#endif
 
 void RenderThreadInfo::onSave(Stream* stream) {
-    // TODO(b/309858017): remove if when ready to bump snapshot version
-    if (feature_is_enabled(kFeature_VulkanSnapshots)) {
-        stream->putBe64(m_puid);
-    }
-
-#if GFXSTREAM_ENABLE_HOST_GLES
     m_glInfo->onSave(stream);
-#endif
 }
 
 bool RenderThreadInfo::onLoad(Stream* stream) {
-    // TODO(b/309858017): remove if when ready to bump snapshot version
-    if (feature_is_enabled(kFeature_VulkanSnapshots)) {
-        m_puid = stream->getBe64();
-    }
-
-#if GFXSTREAM_ENABLE_HOST_GLES
     return m_glInfo->onLoad(stream);
-#else
-    // Functions only work with GLES for now.
-    return false;
-#endif
 }
 
 void RenderThreadInfo::postLoadRefreshCurrentContextSurfacePtrs() {
-#if GFXSTREAM_ENABLE_HOST_GLES
     return m_glInfo->postLoadRefreshCurrentContextSurfacePtrs();
-#endif
 }
 
 }  // namespace gfxstream

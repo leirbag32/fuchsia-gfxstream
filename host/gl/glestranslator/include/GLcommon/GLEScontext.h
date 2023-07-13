@@ -98,10 +98,6 @@ struct GLSupport {
     bool GL_OES_STANDARD_DERIVATIVES = false;
     bool GL_OES_TEXTURE_NPOT = false;
     bool GL_OES_RGB8_RGBA8 = false;
-
-    bool ext_GL_OVR_multiview2 = false;
-    bool ext_GL_EXT_multiview_texture_multisample = false;
-
     bool ext_GL_OES_texture_buffer = false;
 
     bool ext_GL_EXT_color_buffer_float = false;
@@ -109,7 +105,6 @@ struct GLSupport {
     bool ext_GL_EXT_shader_framebuffer_fetch = false;
     bool ext_GL_EXT_texture_buffer = false;
     bool ext_GL_EXT_draw_buffers_indexed = false;
-    bool ext_GL_EXT_clip_cull_distance = false;
 
     bool ext_GL_EXT_memory_object = false;
     bool ext_GL_EXT_semaphore = false;
@@ -248,7 +243,7 @@ public:
     GLEScontext();
     GLEScontext(GlobalNameSpace* globalNameSpace, android::base::Stream* stream,
             GlLibrary* glLib);
-    virtual void init(bool nativeTextureDecompressionEnabled);
+    virtual void init();
     static void initGlobal(EGLiface* eglIface);
     GLenum getGLerror();
     void setGLerror(GLenum err);
@@ -531,7 +526,7 @@ protected:
     void convertDirectVBO(GLESConversionArrays& fArrs,GLint first,GLsizei count,GLenum array_id,GLESpointer* p);
     void convertIndirect(GLESConversionArrays& fArrs,GLsizei count,GLenum type,const GLvoid* indices,GLenum array_id,GLESpointer* p);
     void convertIndirectVBO(GLESConversionArrays& fArrs,GLsizei count,GLenum indices_type,const GLvoid* indices,GLenum array_id,GLESpointer* p);
-    static void initCapsLocked(const GLubyte * extensionString, bool nativeTextureDecompressionEnabled, GLSupport& glSupport);
+    static void initCapsLocked(const GLubyte * extensionString, GLSupport& glSupport);
     virtual void initExtensionString() =0;
 
     bool                  m_needRestoreFromSnapshot = false;
@@ -672,8 +667,6 @@ protected:
             };
 
     GLuint m_useProgram = 0;
-
-    bool m_nativeTextureDecompressionEnabled = false;
 
 private:
 

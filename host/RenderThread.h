@@ -40,8 +40,7 @@ class RenderThread : public android::base::Thread {
 public:
     // Create a new RenderThread instance.
     RenderThread(RenderChannelImpl* channel,
-                 android::base::Stream* loadStream = nullptr,
-                 uint32_t virtioGpuContextId = -1);
+                 android::base::Stream* loadStream = nullptr);
 
     // Create a new RenderThread instance tied to the address space device.
     RenderThread(
@@ -56,7 +55,7 @@ public:
     bool isFinished() const { return mFinished.load(std::memory_order_relaxed); }
 
     void pausePreSnapshot();
-    void resume(bool waitForSave);
+    void resume();
     void save(android::base::Stream* stream);
 
 private:
@@ -101,11 +100,8 @@ private:
     android::base::Optional<android::base::MemStream> mStream;
 
     bool mRunInLimitedMode = false;
-    uint32_t mContextId = 0;
     uint32_t mCapsetId = 0;
-    // If we need to reload process resources.
-    // This happens in snapshot testing where we don't snapshot render threads.
-    bool mNeedReloadProcessResources = false;
+    uint32_t mContextId = 0;
 };
 
 }  // namespace gfxstream

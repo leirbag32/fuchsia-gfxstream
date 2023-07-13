@@ -31,7 +31,7 @@
 #include "aemu/base/ManagedDescriptor.hpp"
 #include "aemu/base/Optional.h"
 #include "aemu/base/synchronization/Lock.h"
-#include "goldfish_vk_private_defs.h"
+#include "cereal/common/goldfish_vk_private_defs.h"
 #include "utils/GfxApiLogger.h"
 #include "utils/RenderDoc.h"
 
@@ -52,20 +52,13 @@ bool getStagingMemoryTypeIndex(VulkanDispatch* vk, VkDevice device,
 typedef void* HANDLE;
 #endif
 
-#if defined(_WIN32)
-// External memory objects are HANDLE on Windows
+// External memory objects are HANDLE on Windows and fd's on POSIX systems.
+#ifdef _WIN32
 typedef HANDLE VK_EXT_MEMORY_HANDLE;
 // corresponds to INVALID_HANDLE_VALUE
 #define VK_EXT_MEMORY_HANDLE_INVALID (VK_EXT_MEMORY_HANDLE)(uintptr_t)(-1)
 #define VK_EXT_MEMORY_HANDLE_TYPE_BIT VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT
-#elif defined(__QNX__)
-#include <screen/screen.h>
-// External memory objects are screen_buffer_t handles on QNX
-typedef screen_buffer_t VK_EXT_MEMORY_HANDLE;
-#define VK_EXT_MEMORY_HANDLE_INVALID (VK_EXT_MEMORY_HANDLE) nullptr
-#define VK_EXT_MEMORY_HANDLE_TYPE_BIT VK_EXTERNAL_MEMORY_HANDLE_TYPE_SCREEN_BUFFER_BIT_QNX
 #else
-// External memory objects are fd's on other POSIX systems
 typedef int VK_EXT_MEMORY_HANDLE;
 #define VK_EXT_MEMORY_HANDLE_INVALID (-1)
 #define VK_EXT_MEMORY_HANDLE_TYPE_BIT VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT
@@ -129,12 +122,11 @@ struct VkEmulation {
 
     bool instanceSupportsExternalMemoryCapabilities = false;
     bool instanceSupportsExternalSemaphoreCapabilities = false;
-    bool instanceSupportsSurface = false;
     PFN_vkGetPhysicalDeviceImageFormatProperties2KHR getImageFormatProperties2Func = nullptr;
     PFN_vkGetPhysicalDeviceProperties2KHR getPhysicalDeviceProperties2Func = nullptr;
     PFN_vkGetPhysicalDeviceFeatures2 getPhysicalDeviceFeatures2Func = nullptr;
 
-#if defined(__APPLE__) && defined(VK_MVK_moltenvk)
+#ifdef VK_MVK_moltenvk
     bool instanceSupportsMoltenVK = false;
     PFN_vkSetMTLTextureMVK setMTLTextureFunc = nullptr;
     PFN_vkGetMTLTextureMVK getMTLTextureFunc = nullptr;
@@ -181,8 +173,7 @@ struct VkEmulation {
     struct DeviceSupportInfo {
         bool hasGraphicsQueueFamily = false;
         bool hasComputeQueueFamily = false;
-        bool supportsExternalMemoryImport = false;
-        bool supportsExternalMemoryExport = false;
+        bool supportsExternalMemory = false;
         bool supportsIdProperties = false;
         bool supportsDriverProperties = false;
         bool hasSamplerYcbcrConversionExtension = false;
@@ -234,8 +225,8 @@ struct VkEmulation {
         // guest physical address.
         uintptr_t gpa = 0u;
 
-        VK_EXT_MEMORY_HANDLE externalHandle = VK_EXT_MEMORY_HANDLE_INVALID;
-
+        VK_EXT_MEMORY_HANDLE exportedHandle = VK_EXT_MEMORY_HANDLE_INVALID;
+        bool actuallyExternal = false;
         bool dedicatedAllocation = false;
     };
 
@@ -294,14 +285,8 @@ struct VkEmulation {
 
         uint32_t handle;
 
-        /* Set in create(), before initialize() */
-        uint32_t width;
-        uint32_t height;
-        GLenum internalFormat;
-        uint32_t memoryProperty;
         int frameworkFormat;
         int frameworkStride;
-        bool initialized = false;
 
         VkImage image = VK_NULL_HANDLE;
         VkImageView imageView = VK_NULL_HANDLE;
@@ -400,8 +385,7 @@ struct VkEmulation {
     std::optional<uint32_t> representativeColorBufferMemoryTypeIndex;
 };
 
-VkEmulation* createGlobalVkEmulation(VulkanDispatch* vk, bool useVulkanNativeSwapchain);
-
+VkEmulation* createGlobalVkEmulation(VulkanDispatch* vk);
 struct VkEmulationFeatures {
     bool glInteropSupported = false;
     bool deferredCommands = false;
@@ -449,14 +433,11 @@ std::unique_ptr<VkImageCreateInfo> generateColorBufferVkImageCreateInfo(VkFormat
                                                                         uint32_t height,
                                                                         VkImageTiling tiling);
 
-bool createVkColorBuffer(uint32_t width, uint32_t height, GLenum format,
-                         FrameworkFormat frameworkFormat, uint32_t colorBufferHandle,
-                         bool vulkanOnly, uint32_t memoryProperty);
+bool setupVkColorBuffer(uint32_t width, uint32_t height, GLenum format,
+                        FrameworkFormat frameworkFormat, uint32_t colorBufferHandle,
+                        bool vulkanOnly, uint32_t memoryProperty);
 
 bool teardownVkColorBuffer(uint32_t colorBufferHandle);
-
-bool importExtMemoryHandleToVkColorBuffer(uint32_t colorBufferHandle, uint32_t type,
-                                          VK_EXT_MEMORY_HANDLE extMemHandle);
 
 VkEmulation::ColorBufferInfo getColorBufferInfo(uint32_t colorBufferHandle);
 VK_EXT_MEMORY_HANDLE getColorBufferExtMemoryHandle(uint32_t colorBufferHandle);
@@ -484,6 +465,8 @@ bool readColorBufferToBytesLocked(uint32_t colorBufferHandle, uint32_t x, uint32
 bool updateColorBufferFromBytes(uint32_t colorBufferHandle, const std::vector<uint8_t>& bytes);
 bool updateColorBufferFromBytes(uint32_t colorBufferHandle, uint32_t x, uint32_t y, uint32_t w,
                                 uint32_t h, const void* pixels);
+bool updateColorBufferFromBytesLocked(uint32_t colorBufferHandle, uint32_t x, uint32_t y,
+                                      uint32_t w, uint32_t h, const void* pixels);
 
 // Data buffer operations
 bool getBufferAllocationInfo(uint32_t bufferHandle, VkDeviceSize* outSize,

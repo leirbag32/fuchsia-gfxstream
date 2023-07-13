@@ -17,7 +17,6 @@ add_library(gfxstream-vulkan-server
             VkDecoder.cpp
             VkDecoderGlobalState.cpp
             VkDecoderSnapshot.cpp
-            VkDecoderSnapshotUtils.cpp
             VkFormatUtils.cpp
             VkReconstruction.cpp
             VulkanDispatch.cpp
@@ -42,8 +41,6 @@ if (WIN32)
 target_compile_definitions(gfxstream-vulkan-server PRIVATE -DVK_USE_PLATFORM_WIN32_KHR)
 elseif (APPLE)
 target_compile_definitions(gfxstream-vulkan-server PRIVATE -DVK_USE_PLATFORM_METAL_EXT)
-elseif (QNX)
-target_compile_definitions(gfxstream-vulkan-server PRIVATE -DVK_USE_PLATFORM_SCREEN_QNX)
 endif()
 
 if (NOT MSVC)
@@ -60,6 +57,5 @@ target_include_directories(gfxstream-vulkan-server
                            ${GFXSTREAM_REPO_ROOT}/include
                            ${GFXSTREAM_REPO_ROOT}/host
                            ${GFXSTREAM_REPO_ROOT}/host/vulkan
-                           ${GFXSTREAM_REPO_ROOT}/host/vulkan/cereal/common
                            ${GFXSTREAM_REPO_ROOT}/host/apigen-codec-common
                            ${GFXSTREAM_REPO_ROOT}/third-party/glm/include)

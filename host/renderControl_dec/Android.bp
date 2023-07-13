@@ -8,16 +8,10 @@ package {
 }
 
 cc_library_static {
-    name: "libgfxstream_host_rendercontrol_dec",
-    defaults: ["gfxstream_defaults"],
-    header_libs: [
-        "gfxstream_opengl_headers",
-    ],
-    export_header_lib_headers: [
-        "gfxstream_opengl_headers",
-    ],
+    name: "gfxstream_renderControl_dec",
+    defaults: [ "gfxstream_defaults" ],
     static_libs: [
-        "libgfxstream_host_apigen_codec_common",
+        "gfxstream_apigen_codec_common",
     ],
     srcs: [
         "renderControl_dec.cpp",

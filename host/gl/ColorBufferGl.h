@@ -106,9 +106,10 @@ class ColorBufferGl {
     // Return ColorBufferGl width and height in pixels
     GLuint getWidth() const { return m_width; }
     GLuint getHeight() const { return m_height; }
+    GLint getInternalFormat() const { return m_internalFormat; }
 
     // Read the ColorBufferGl instance's pixel values into host memory.
-    bool readPixels(int x,
+    void readPixels(int x,
                     int y,
                     int width,
                     int height,
@@ -118,11 +119,11 @@ class ColorBufferGl {
     // Read the ColorBuffer instance's pixel values by first scaling
     // to the size of width x height, then clipping a |rect| from the
     // screen defined by width x height.
-    bool readPixelsScaled(int width, int height, GLenum p_format, GLenum p_type, int skinRotation,
+    void readPixelsScaled(int width, int height, GLenum p_format, GLenum p_type, int skinRotation,
                           Rect rect, void* pixels);
 
     // Read cached YUV pixel values into host memory.
-    bool readPixelsYUVCached(int x,
+    void readPixelsYUVCached(int x,
                              int y,
                              int width,
                              int height,
