@@ -209,9 +209,6 @@ class ResourceTracker {
     void on_vkGetImageMemoryRequirements2KHR(void* context, VkDevice device,
                                              const VkImageMemoryRequirementsInfo2* pInfo,
                                              VkMemoryRequirements2* pMemoryRequirements);
-    void on_vkGetImageSubresourceLayout(void* context, VkDevice device, VkImage image,
-                                        const VkImageSubresource* pSubresource,
-                                        VkSubresourceLayout* pLayout);
 
     VkResult on_vkBindImageMemory(void* context, VkResult input_result, VkDevice device,
                                   VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset);
@@ -275,9 +272,6 @@ class ResourceTracker {
 
     VkResult on_vkGetMemoryFdKHR(void* context, VkResult input_result, VkDevice device,
                                  const VkMemoryGetFdInfoKHR* pGetFdInfo, int* pFd);
-    VkResult on_vkGetMemoryFdPropertiesKHR(void* context, VkResult input_result, VkDevice device,
-                                           VkExternalMemoryHandleTypeFlagBits handleType, int fd,
-                                           VkMemoryFdPropertiesKHR* pMemoryFdProperties);
 
 #ifdef VK_USE_PLATFORM_FUCHSIA
     VkResult on_vkGetMemoryZirconHandleFUCHSIA(void* context, VkResult input_result,
@@ -625,7 +619,7 @@ class ResourceTracker {
 
     void setDeviceMemoryInfo(VkDevice device, VkDeviceMemory memory, VkDeviceSize allocationSize,
                              uint8_t* ptr, uint32_t memoryTypeIndex, AHardwareBuffer* ahw,
-                             bool imported, zx_handle_t vmoHandle, VirtGpuResourcePtr blobPtr);
+                             bool imported, zx_handle_t vmoHandle, VirtGpuBlobPtr blobPtr);
 
     void setImageInfo(VkImage image, VkDevice device, const VkImageCreateInfo* pCreateInfo);
 
@@ -754,7 +748,7 @@ class ResourceTracker {
         GoldfishAddressSpaceBlockPtr goldfishBlock = nullptr;
 #endif  // defined(__ANDROID__)
         CoherentMemoryPtr coherentMemory = nullptr;
-        VirtGpuResourcePtr blobPtr = nullptr;
+        VirtGpuBlobPtr blobPtr = nullptr;
     };
 
     struct VkCommandBuffer_Info {
@@ -778,16 +772,13 @@ class ResourceTracker {
         VkMemoryRequirements baseRequirements;
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
         bool hasExternalFormat = false;
-        unsigned externalFourccFormat = 0;
+        unsigned androidFormat = 0;
         std::vector<int> pendingQsriSyncFds;
 #endif
 #ifdef VK_USE_PLATFORM_FUCHSIA
         bool isSysmemBackedMemory = false;
 #endif
-#ifdef LINUX_GUEST_BUILD
-        bool isDmaBufImage = false;
-        VkImage linearPeerImage = VK_NULL_HANDLE;
-#endif
+        bool isWsiImage = false;
     };
 
     struct VkBuffer_Info {

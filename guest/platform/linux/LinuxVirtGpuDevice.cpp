@@ -149,9 +149,29 @@ struct VirtGpuCaps LinuxVirtGpuDevice::getCaps(void) { return mCaps; }
 
 int64_t LinuxVirtGpuDevice::getDeviceHandle(void) { return mDeviceHandle; }
 
-VirtGpuResourcePtr LinuxVirtGpuDevice::createResource(uint32_t width, uint32_t height,
-                                                      uint32_t stride, uint32_t virglFormat,
-                                                      uint32_t target, uint32_t bind) {
+VirtGpuBlobPtr LinuxVirtGpuDevice::createVirglBlob(uint32_t width, uint32_t height,
+                                                   uint32_t virglFormat) {
+    uint32_t target = 0;
+    uint32_t bind = 0;
+    uint32_t bpp = 0;
+
+    switch (virglFormat) {
+        case VIRGL_FORMAT_R8G8B8A8_UNORM:
+        case VIRGL_FORMAT_B8G8R8A8_UNORM:
+            target = PIPE_TEXTURE_2D;
+            bind = VIRGL_BIND_RENDER_TARGET;
+            bpp = 4;
+            break;
+        case VIRGL_FORMAT_R8_UNORM:
+            target = PIPE_BUFFER;
+            bind = VIRGL_BIND_CUSTOM;
+            bpp = 1;
+            break;
+        default:
+            ALOGE("Unknown virgl format");
+            return nullptr;
+    }
+
     drm_virtgpu_resource_create create = {
         .target = target,
         .format = virglFormat,
@@ -162,8 +182,8 @@ VirtGpuResourcePtr LinuxVirtGpuDevice::createResource(uint32_t width, uint32_t h
         .array_size = 1U,
         .last_level = 0,
         .nr_samples = 0,
-        .size = stride * height,
-        .stride = stride,
+        .size = width * height * bpp,
+        .stride = width * bpp,
     };
 
     int ret = drmIoctl(mDeviceHandle, DRM_IOCTL_VIRTGPU_RESOURCE_CREATE, &create);
@@ -172,11 +192,11 @@ VirtGpuResourcePtr LinuxVirtGpuDevice::createResource(uint32_t width, uint32_t h
         return nullptr;
     }
 
-    return std::make_shared<LinuxVirtGpuResource>(
-        mDeviceHandle, create.bo_handle, create.res_handle, static_cast<uint64_t>(create.size));
+    return std::make_shared<LinuxVirtGpuBlob>(mDeviceHandle, create.bo_handle, create.res_handle,
+                                              static_cast<uint64_t>(create.size));
 }
 
-VirtGpuResourcePtr LinuxVirtGpuDevice::createBlob(const struct VirtGpuCreateBlob& blobCreate) {
+VirtGpuBlobPtr LinuxVirtGpuDevice::createBlob(const struct VirtGpuCreateBlob& blobCreate) {
     int ret;
     struct drm_virtgpu_resource_create_blob create = {0};
 
@@ -191,11 +211,11 @@ VirtGpuResourcePtr LinuxVirtGpuDevice::createBlob(const struct VirtGpuCreateBlob
         return nullptr;
     }
 
-    return std::make_shared<LinuxVirtGpuResource>(mDeviceHandle, create.bo_handle,
-                                                  create.res_handle, blobCreate.size);
+    return std::make_shared<LinuxVirtGpuBlob>(mDeviceHandle, create.bo_handle, create.res_handle,
+                                              blobCreate.size);
 }
 
-VirtGpuResourcePtr LinuxVirtGpuDevice::importBlob(const struct VirtGpuExternalHandle& handle) {
+VirtGpuBlobPtr LinuxVirtGpuDevice::importBlob(const struct VirtGpuExternalHandle& handle) {
     struct drm_virtgpu_resource_info info = {0};
     uint32_t blobHandle;
     int ret;
@@ -214,12 +234,11 @@ VirtGpuResourcePtr LinuxVirtGpuDevice::importBlob(const struct VirtGpuExternalHa
         return nullptr;
     }
 
-    return std::make_shared<LinuxVirtGpuResource>(mDeviceHandle, blobHandle, info.res_handle,
-                                                  static_cast<uint64_t>(info.size));
+    return std::make_shared<LinuxVirtGpuBlob>(mDeviceHandle, blobHandle, info.res_handle,
+                                              static_cast<uint64_t>(info.size));
 }
 
-int LinuxVirtGpuDevice::execBuffer(struct VirtGpuExecBuffer& execbuffer,
-                                   const VirtGpuResource* blob) {
+int LinuxVirtGpuDevice::execBuffer(struct VirtGpuExecBuffer& execbuffer, const VirtGpuBlob* blob) {
     int ret;
     struct drm_virtgpu_execbuffer exec = {0};
     uint32_t blobHandle;

@@ -492,14 +492,6 @@ struct VulkanDispatch {
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-    PFN_vkGetMTLDeviceMVK vkGetMTLDeviceMVK;
-    PFN_vkSetMTLTextureMVK vkSetMTLTextureMVK;
-    PFN_vkGetMTLTextureMVK vkGetMTLTextureMVK;
-    PFN_vkGetMTLBufferMVK vkGetMTLBufferMVK;
-    PFN_vkUseIOSurfaceMVK vkUseIOSurfaceMVK;
-    PFN_vkGetIOSurfaceMVK vkGetIOSurfaceMVK;
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -539,8 +531,6 @@ struct VulkanDispatch {
 #ifdef VK_EXT_tooling_info
     PFN_vkGetPhysicalDeviceToolPropertiesEXT vkGetPhysicalDeviceToolPropertiesEXT;
 #endif
-#ifdef VK_EXT_validation_features
-#endif
 #ifdef VK_EXT_provoking_vertex
 #endif
 #ifdef VK_EXT_line_rasterization
@@ -578,8 +568,6 @@ struct VulkanDispatch {
 #endif
 #ifdef VK_EXT_device_memory_report
 #endif
-#ifdef VK_EXT_robustness2
-#endif
 #ifdef VK_EXT_custom_border_color
 #endif
 #ifdef VK_EXT_private_data
@@ -589,9 +577,6 @@ struct VulkanDispatch {
     PFN_vkGetPrivateDataEXT vkGetPrivateDataEXT;
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
-    PFN_vkExportMetalObjectsEXT vkExportMetalObjectsEXT;
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 #endif

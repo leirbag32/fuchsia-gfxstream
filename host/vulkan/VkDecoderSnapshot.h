@@ -55,7 +55,6 @@ class VkDecoderSnapshot {
     void save(android::base::Stream* stream);
     void load(android::base::Stream* stream, emugl::GfxApiLogger& gfx_logger,
               emugl::HealthMonitor<>* healthMonitor);
-    void createExtraHandlesForNextApi(const uint64_t* created, uint32_t count);
 #ifdef VK_VERSION_1_0
     void vkCreateInstance(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
                           android::base::BumpPool* pool, VkResult input_result,
@@ -1320,49 +1319,9 @@ class VkDecoderSnapshot {
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
-    void vkSetDebugUtilsObjectNameEXT(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
-                                      android::base::BumpPool* pool, VkResult input_result,
-                                      VkDevice device,
-                                      const VkDebugUtilsObjectNameInfoEXT* pNameInfo);
-    void vkSetDebugUtilsObjectTagEXT(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
-                                     android::base::BumpPool* pool, VkResult input_result,
-                                     VkDevice device, const VkDebugUtilsObjectTagInfoEXT* pTagInfo);
-    void vkQueueBeginDebugUtilsLabelEXT(const uint8_t* snapshotTraceBegin,
-                                        size_t snapshotTraceBytes, android::base::BumpPool* pool,
-                                        VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo);
-    void vkQueueEndDebugUtilsLabelEXT(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
-                                      android::base::BumpPool* pool, VkQueue queue);
-    void vkQueueInsertDebugUtilsLabelEXT(const uint8_t* snapshotTraceBegin,
-                                         size_t snapshotTraceBytes, android::base::BumpPool* pool,
-                                         VkQueue queue, const VkDebugUtilsLabelEXT* pLabelInfo);
-    void vkCmdBeginDebugUtilsLabelEXT(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
-                                      android::base::BumpPool* pool, VkCommandBuffer commandBuffer,
-                                      const VkDebugUtilsLabelEXT* pLabelInfo);
-    void vkCmdEndDebugUtilsLabelEXT(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
-                                    android::base::BumpPool* pool, VkCommandBuffer commandBuffer);
-    void vkCmdInsertDebugUtilsLabelEXT(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
-                                       android::base::BumpPool* pool, VkCommandBuffer commandBuffer,
-                                       const VkDebugUtilsLabelEXT* pLabelInfo);
-    void vkCreateDebugUtilsMessengerEXT(const uint8_t* snapshotTraceBegin,
-                                        size_t snapshotTraceBytes, android::base::BumpPool* pool,
-                                        VkResult input_result, VkInstance instance,
-                                        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-                                        const VkAllocationCallbacks* pAllocator,
-                                        VkDebugUtilsMessengerEXT* pMessenger);
-    void vkDestroyDebugUtilsMessengerEXT(const uint8_t* snapshotTraceBegin,
-                                         size_t snapshotTraceBytes, android::base::BumpPool* pool,
-                                         VkInstance instance, VkDebugUtilsMessengerEXT messenger,
-                                         const VkAllocationCallbacks* pAllocator);
-    void vkSubmitDebugUtilsMessageEXT(const uint8_t* snapshotTraceBegin, size_t snapshotTraceBytes,
-                                      android::base::BumpPool* pool, VkInstance instance,
-                                      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                      VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-                                      const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData);
 #endif
 #ifdef VK_ANDROID_external_memory_android_hardware_buffer
 #endif
@@ -1390,8 +1349,6 @@ class VkDecoderSnapshot {
                                               android::base::BumpPool* pool, VkResult input_result,
                                               VkPhysicalDevice physicalDevice, uint32_t* pToolCount,
                                               VkPhysicalDeviceToolProperties* pToolProperties);
-#endif
-#ifdef VK_EXT_validation_features
 #endif
 #ifdef VK_EXT_provoking_vertex
 #endif
@@ -1479,8 +1436,6 @@ class VkDecoderSnapshot {
 #endif
 #ifdef VK_EXT_device_memory_report
 #endif
-#ifdef VK_EXT_robustness2
-#endif
 #ifdef VK_EXT_custom_border_color
 #endif
 #ifdef VK_EXT_private_data
@@ -1503,8 +1458,6 @@ class VkDecoderSnapshot {
                              VkPrivateDataSlot privateDataSlot, uint64_t* pData);
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 #endif

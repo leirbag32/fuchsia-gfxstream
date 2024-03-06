@@ -3191,56 +3191,9 @@ void unmarshal_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
-void marshal_VkDebugUtilsLabelEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                  const VkDebugUtilsLabelEXT* forMarshaling);
-
-void unmarshal_VkDebugUtilsLabelEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                    VkDebugUtilsLabelEXT* forUnmarshaling);
-
-void marshal_VkDebugUtilsObjectNameInfoEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                           const VkDebugUtilsObjectNameInfoEXT* forMarshaling);
-
-void unmarshal_VkDebugUtilsObjectNameInfoEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                             VkDebugUtilsObjectNameInfoEXT* forUnmarshaling);
-
-void marshal_VkDebugUtilsMessengerCallbackDataEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    const VkDebugUtilsMessengerCallbackDataEXT* forMarshaling);
-
-void unmarshal_VkDebugUtilsMessengerCallbackDataEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkDebugUtilsMessengerCallbackDataEXT* forUnmarshaling);
-
-void marshal_VkDebugUtilsMessengerCreateInfoEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    const VkDebugUtilsMessengerCreateInfoEXT* forMarshaling);
-
-void unmarshal_VkDebugUtilsMessengerCreateInfoEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkDebugUtilsMessengerCreateInfoEXT* forUnmarshaling);
-
-void marshal_VkDebugUtilsObjectTagInfoEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                          const VkDebugUtilsObjectTagInfoEXT* forMarshaling);
-
-void unmarshal_VkDebugUtilsObjectTagInfoEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                            VkDebugUtilsObjectTagInfoEXT* forUnmarshaling);
-
-#define OP_vkSetDebugUtilsObjectNameEXT 20294
-#define OP_vkSetDebugUtilsObjectTagEXT 20295
-#define OP_vkQueueBeginDebugUtilsLabelEXT 20296
-#define OP_vkQueueEndDebugUtilsLabelEXT 20297
-#define OP_vkQueueInsertDebugUtilsLabelEXT 20298
-#define OP_vkCmdBeginDebugUtilsLabelEXT 20299
-#define OP_vkCmdEndDebugUtilsLabelEXT 20300
-#define OP_vkCmdInsertDebugUtilsLabelEXT 20301
-#define OP_vkCreateDebugUtilsMessengerEXT 20302
-#define OP_vkDestroyDebugUtilsMessengerEXT 20303
-#define OP_vkSubmitDebugUtilsMessageEXT 20304
 #endif
 #ifdef VK_ANDROID_external_memory_android_hardware_buffer
 #endif
@@ -3384,14 +3337,6 @@ DEFINE_ALIAS_FUNCTION(unmarshal_VkPhysicalDeviceToolProperties,
                       unmarshal_VkPhysicalDeviceToolPropertiesEXT)
 
 #define OP_vkGetPhysicalDeviceToolPropertiesEXT 282247593
-#endif
-#ifdef VK_EXT_validation_features
-void marshal_VkValidationFeaturesEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                     const VkValidationFeaturesEXT* forMarshaling);
-
-void unmarshal_VkValidationFeaturesEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                       VkValidationFeaturesEXT* forUnmarshaling);
-
 #endif
 #ifdef VK_EXT_provoking_vertex
 void marshal_VkPhysicalDeviceProvokingVertexFeaturesEXT(
@@ -3656,24 +3601,6 @@ void unmarshal_VkDeviceDeviceMemoryReportCreateInfoEXT(
     VkDeviceDeviceMemoryReportCreateInfoEXT* forUnmarshaling);
 
 #endif
-#ifdef VK_EXT_robustness2
-void marshal_VkPhysicalDeviceRobustness2FeaturesEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2FeaturesEXT* forMarshaling);
-
-void unmarshal_VkPhysicalDeviceRobustness2FeaturesEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkPhysicalDeviceRobustness2FeaturesEXT* forUnmarshaling);
-
-void marshal_VkPhysicalDeviceRobustness2PropertiesEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2PropertiesEXT* forMarshaling);
-
-void unmarshal_VkPhysicalDeviceRobustness2PropertiesEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkPhysicalDeviceRobustness2PropertiesEXT* forUnmarshaling);
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void marshal_VkSamplerCustomBorderColorCreateInfoEXT(
     VulkanStream* vkStream, VkStructureType rootType,
@@ -3730,8 +3657,6 @@ DEFINE_ALIAS_FUNCTION(marshal_VkPhysicalDevicePipelineCreationCacheControlFeatur
 DEFINE_ALIAS_FUNCTION(unmarshal_VkPhysicalDevicePipelineCreationCacheControlFeatures,
                       unmarshal_VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT)
 
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void marshal_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(

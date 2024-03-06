@@ -1,5 +1,3 @@
-add_subdirectory(features)
-
 # Codec common sources
 add_subdirectory(apigen-codec-common)
 add_subdirectory(compressedTextureFormats)
@@ -48,7 +46,7 @@ set(stream-server-core-sources
     RendererImpl.cpp
     FrameBuffer.cpp)
 if (APPLE)
-    set(stream-server-core-platform-sources NativeSubWindow_cocoa.mm)
+    set(stream-server-core-platform-sources NativeSubWindow_cocoa.m)
 elseif (WIN32)
     set(stream-server-core-platform-sources NativeSubWindow_win32.cpp)
 elseif (QNX)
@@ -78,7 +76,6 @@ target_link_libraries(
         GLES_CM_translator_static
         OpenGLESDispatch
         renderControl_dec
-        gfxstream_features
         gfxstream-gl-server
         gfxstream-magma-server
         gfxstream-vulkan-server
@@ -133,7 +130,6 @@ target_link_libraries(
     gfxstream_backend
     PUBLIC
     gfxstream_common_utils
-    gfxstream_features
     gfxstream_backend_static
     PRIVATE
     )
@@ -204,7 +200,8 @@ endfunction()
         tests/ShaderUtils.cpp
         tests/GLSnapshotTestDispatch.cpp
         tests/GLSnapshotTestStateUtils.cpp
-        tests/HelloTriangleImp.cpp)
+        tests/HelloTriangleImp.cpp
+        tests/ImageUtils.cpp)
     target_include_directories(
         stream-server-testing-support
         PUBLIC
@@ -220,7 +217,6 @@ endfunction()
         PUBLIC
         aemu-host-common-testing-support
         aemu-base-testing-support
-        gfxstream_common_image
         gfxstream_backend_static
         gfxstream_stb
         OSWindow

@@ -13,9 +13,8 @@
 // limitations under the License.
 #include "Resources.h"
 
+#include <log/log.h>
 #include <stdlib.h>
-
-#include "util/log.h"
 
 #define GOLDFISH_VK_OBJECT_DEBUG 0
 
@@ -42,7 +41,7 @@ extern "C" {
         struct goldfish_##type* res =                                       \
             static_cast<goldfish_##type*>(malloc(sizeof(goldfish_##type))); \
         if (!res) {                                                         \
-            mesa_loge("FATAL: Failed to alloc " #type " handle");           \
+            ALOGE("FATAL: Failed to alloc " #type " handle");               \
             abort();                                                        \
         }                                                                   \
         SET_HWVULKAN_DISPATCH_MAGIC                                         \
@@ -97,7 +96,7 @@ extern "C" {
         struct goldfish_##type* res =                                       \
             static_cast<goldfish_##type*>(malloc(sizeof(goldfish_##type))); \
         if (!res) {                                                         \
-            mesa_loge("FATAL: Failed to alloc " #type " handle");           \
+            ALOGE("FATAL: Failed to alloc " #type " handle");               \
             abort();                                                        \
         }                                                                   \
         SET_HWVULKAN_DISPATCH_MAGIC                                         \

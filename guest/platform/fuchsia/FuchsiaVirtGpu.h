@@ -16,16 +16,14 @@
 
 #pragma once
 
-#include <lib/magma/magma.h>
-
 #include "VirtGpu.h"
 
-class FuchsiaVirtGpuResource : public std::enable_shared_from_this<FuchsiaVirtGpuResource>,
-                               public VirtGpuResource {
+class FuchsiaVirtGpuBlob : public std::enable_shared_from_this<FuchsiaVirtGpuBlob>,
+                           public VirtGpuBlob {
    public:
-    FuchsiaVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle, uint32_t resourceHandle,
-                           uint64_t size);
-    ~FuchsiaVirtGpuResource();
+    FuchsiaVirtGpuBlob(int64_t deviceHandle, uint32_t blobHandle, uint32_t resourceHandle,
+                       uint64_t size);
+    ~FuchsiaVirtGpuBlob();
 
     uint32_t getResourceHandle() const override;
     uint32_t getBlobHandle() const override;
@@ -35,34 +33,29 @@ class FuchsiaVirtGpuResource : public std::enable_shared_from_this<FuchsiaVirtGp
     int transferFromHost(uint32_t offset, uint32_t size) override;
     int transferToHost(uint32_t offset, uint32_t size) override;
 
-    VirtGpuResourceMappingPtr createMapping(void) override;
+    VirtGpuBlobMappingPtr createMapping(void) override;
 };
 
-class FuchsiaVirtGpuResourceMapping : public VirtGpuResourceMapping {
+class FuchsiaVirtGpuBlobMapping : public VirtGpuBlobMapping {
    public:
-    FuchsiaVirtGpuResourceMapping(VirtGpuResourcePtr blob, uint8_t* ptr, uint64_t size);
-    ~FuchsiaVirtGpuResourceMapping(void);
+    FuchsiaVirtGpuBlobMapping(VirtGpuBlobPtr blob, uint8_t* ptr, uint64_t size);
+    ~FuchsiaVirtGpuBlobMapping(void);
 
     uint8_t* asRawPtr(void) override;
 };
 
 class FuchsiaVirtGpuDevice : public VirtGpuDevice {
    public:
-    FuchsiaVirtGpuDevice(enum VirtGpuCapset capset, magma_device_t device);
+    FuchsiaVirtGpuDevice(enum VirtGpuCapset capset);
     ~FuchsiaVirtGpuDevice();
 
     int64_t getDeviceHandle(void) override;
 
     struct VirtGpuCaps getCaps(void) override;
 
-    VirtGpuResourcePtr createBlob(const struct VirtGpuCreateBlob& blobCreate) override;
-    VirtGpuResourcePtr createResource(uint32_t width, uint32_t height, uint32_t stride,
-                                      uint32_t format, uint32_t target, uint32_t bind) override;
-    VirtGpuResourcePtr importBlob(const struct VirtGpuExternalHandle& handle) override;
+    VirtGpuBlobPtr createBlob(const struct VirtGpuCreateBlob& blobCreate) override;
+    VirtGpuBlobPtr createVirglBlob(uint32_t width, uint32_t height, uint32_t format) override;
+    VirtGpuBlobPtr importBlob(const struct VirtGpuExternalHandle& handle) override;
 
-    int execBuffer(struct VirtGpuExecBuffer& execbuffer, const VirtGpuResource* blob) override;
-
-   private:
-    magma_device_t device_;
-    struct VirtGpuCaps mCaps;
+    int execBuffer(struct VirtGpuExecBuffer& execbuffer, const VirtGpuBlob* blob) override;
 };

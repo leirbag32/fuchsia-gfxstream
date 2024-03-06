@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "FrameworkFormats.h"
-#include "aemu/base/files/Stream.h"
 
 namespace gfxstream {
 namespace vk {
@@ -27,8 +26,7 @@ class ColorBufferVk {
    public:
     static std::unique_ptr<ColorBufferVk> create(uint32_t handle, uint32_t width, uint32_t height,
                                                  GLenum format, FrameworkFormat frameworkFormat,
-                                                 bool vulkanOnly, uint32_t memoryProperty,
-                                                 android::base::Stream* stream = nullptr);
+                                                 bool vulkanOnly, uint32_t memoryProperty);
 
     ~ColorBufferVk();
 
@@ -39,10 +37,6 @@ class ColorBufferVk {
     bool updateFromBytes(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const void* bytes);
 
     bool importExtMemoryHandle(void* nativeResource, uint32_t type, bool preserveContent);
-
-    void onSave(android::base::Stream* stream);
-
-    int waitSync();
 
    private:
     ColorBufferVk(uint32_t handle);

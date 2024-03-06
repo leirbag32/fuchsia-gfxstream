@@ -16,9 +16,9 @@
 
 #include "FuchsiaVirtGpu.h"
 
-FuchsiaVirtGpuResourceMapping::FuchsiaVirtGpuResourceMapping(VirtGpuResourcePtr blob, uint8_t* ptr,
-                                                             uint64_t size) {}
+FuchsiaVirtGpuBlobMapping::FuchsiaVirtGpuBlobMapping(VirtGpuBlobPtr blob, uint8_t* ptr,
+                                                     uint64_t size) {}
 
-FuchsiaVirtGpuResourceMapping::~FuchsiaVirtGpuResourceMapping(void) {}
+FuchsiaVirtGpuBlobMapping::~FuchsiaVirtGpuBlobMapping(void) {}
 
-uint8_t* FuchsiaVirtGpuResourceMapping::asRawPtr(void) { return nullptr; }
+uint8_t* FuchsiaVirtGpuBlobMapping::asRawPtr(void) { return nullptr; }

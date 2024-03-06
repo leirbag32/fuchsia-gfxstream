@@ -1686,32 +1686,9 @@ void reservedunmarshal_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
-void reservedunmarshal_VkDebugUtilsLabelEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                            VkDebugUtilsLabelEXT* forUnmarshaling, uint8_t** ptr);
-
-void reservedunmarshal_VkDebugUtilsObjectNameInfoEXT(VulkanStream* vkStream,
-                                                     VkStructureType rootType,
-                                                     VkDebugUtilsObjectNameInfoEXT* forUnmarshaling,
-                                                     uint8_t** ptr);
-
-void reservedunmarshal_VkDebugUtilsMessengerCallbackDataEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkDebugUtilsMessengerCallbackDataEXT* forUnmarshaling, uint8_t** ptr);
-
-void reservedunmarshal_VkDebugUtilsMessengerCreateInfoEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkDebugUtilsMessengerCreateInfoEXT* forUnmarshaling, uint8_t** ptr);
-
-void reservedunmarshal_VkDebugUtilsObjectTagInfoEXT(VulkanStream* vkStream,
-                                                    VkStructureType rootType,
-                                                    VkDebugUtilsObjectTagInfoEXT* forUnmarshaling,
-                                                    uint8_t** ptr);
-
 #endif
 #ifdef VK_ANDROID_external_memory_android_hardware_buffer
 #endif
@@ -1794,12 +1771,6 @@ DEFINE_ALIAS_FUNCTION(reservedunmarshal_VkPipelineShaderStageRequiredSubgroupSiz
 #ifdef VK_EXT_tooling_info
 DEFINE_ALIAS_FUNCTION(reservedunmarshal_VkPhysicalDeviceToolProperties,
                       reservedunmarshal_VkPhysicalDeviceToolPropertiesEXT)
-
-#endif
-#ifdef VK_EXT_validation_features
-void reservedunmarshal_VkValidationFeaturesEXT(VulkanStream* vkStream, VkStructureType rootType,
-                                               VkValidationFeaturesEXT* forUnmarshaling,
-                                               uint8_t** ptr);
 
 #endif
 #ifdef VK_EXT_provoking_vertex
@@ -1945,16 +1916,6 @@ void reservedunmarshal_VkDeviceDeviceMemoryReportCreateInfoEXT(
     VkDeviceDeviceMemoryReportCreateInfoEXT* forUnmarshaling, uint8_t** ptr);
 
 #endif
-#ifdef VK_EXT_robustness2
-void reservedunmarshal_VkPhysicalDeviceRobustness2FeaturesEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkPhysicalDeviceRobustness2FeaturesEXT* forUnmarshaling, uint8_t** ptr);
-
-void reservedunmarshal_VkPhysicalDeviceRobustness2PropertiesEXT(
-    VulkanStream* vkStream, VkStructureType rootType,
-    VkPhysicalDeviceRobustness2PropertiesEXT* forUnmarshaling, uint8_t** ptr);
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void reservedunmarshal_VkSamplerCustomBorderColorCreateInfoEXT(
     VulkanStream* vkStream, VkStructureType rootType,
@@ -1984,8 +1945,6 @@ DEFINE_ALIAS_FUNCTION(reservedunmarshal_VkPrivateDataSlotCreateInfo,
 DEFINE_ALIAS_FUNCTION(reservedunmarshal_VkPhysicalDevicePipelineCreationCacheControlFeatures,
                       reservedunmarshal_VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT)
 
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void reservedunmarshal_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(

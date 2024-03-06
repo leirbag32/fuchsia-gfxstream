@@ -76,8 +76,8 @@ bool virtgpu_address_space_ping(address_space_handle_t, struct address_space_pin
 
 AddressSpaceStream* createVirtioGpuAddressSpaceStream(enum VirtGpuCapset capset,
                                                       HealthMonitor<>* healthMonitor) {
-    VirtGpuResourcePtr pipe, blob;
-    VirtGpuResourceMappingPtr pipeMapping, blobMapping;
+    VirtGpuBlobPtr pipe, blob;
+    VirtGpuBlobMappingPtr pipeMapping, blobMapping;
     struct VirtGpuExecBuffer exec = {};
     struct VirtGpuCreateBlob blobCreate = {};
     struct gfxstreamContextCreate contextCreate = {};

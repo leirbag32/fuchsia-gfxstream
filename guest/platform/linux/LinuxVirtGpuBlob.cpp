@@ -26,14 +26,14 @@
 #include "LinuxVirtGpu.h"
 #include "virtgpu_drm.h"
 
-LinuxVirtGpuResource::LinuxVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle,
-                                           uint32_t resourceHandle, uint64_t size)
+LinuxVirtGpuBlob::LinuxVirtGpuBlob(int64_t deviceHandle, uint32_t blobHandle,
+                                   uint32_t resourceHandle, uint64_t size)
     : mDeviceHandle(deviceHandle),
       mBlobHandle(blobHandle),
       mResourceHandle(resourceHandle),
       mSize(size) {}
 
-LinuxVirtGpuResource::~LinuxVirtGpuResource() {
+LinuxVirtGpuBlob::~LinuxVirtGpuBlob() {
     struct drm_gem_close gem_close {
         .handle = mBlobHandle, .pad = 0,
     };
@@ -45,11 +45,11 @@ LinuxVirtGpuResource::~LinuxVirtGpuResource() {
     }
 }
 
-uint32_t LinuxVirtGpuResource::getBlobHandle() const { return mBlobHandle; }
+uint32_t LinuxVirtGpuBlob::getBlobHandle() const { return mBlobHandle; }
 
-uint32_t LinuxVirtGpuResource::getResourceHandle() const { return mResourceHandle; }
+uint32_t LinuxVirtGpuBlob::getResourceHandle() const { return mResourceHandle; }
 
-VirtGpuResourceMappingPtr LinuxVirtGpuResource::createMapping() {
+VirtGpuBlobMappingPtr LinuxVirtGpuBlob::createMapping() {
     int ret;
     struct drm_virtgpu_map map {
         .handle = mBlobHandle, .pad = 0,
@@ -69,10 +69,10 @@ VirtGpuResourceMappingPtr LinuxVirtGpuResource::createMapping() {
         return nullptr;
     }
 
-    return std::make_shared<LinuxVirtGpuResourceMapping>(shared_from_this(), ptr, mSize);
+    return std::make_shared<LinuxVirtGpuBlobMapping>(shared_from_this(), ptr, mSize);
 }
 
-int LinuxVirtGpuResource::exportBlob(struct VirtGpuExternalHandle& handle) {
+int LinuxVirtGpuBlob::exportBlob(struct VirtGpuExternalHandle& handle) {
     int ret, fd;
 
     uint32_t flags = DRM_CLOEXEC;
@@ -87,7 +87,7 @@ int LinuxVirtGpuResource::exportBlob(struct VirtGpuExternalHandle& handle) {
     return 0;
 }
 
-int LinuxVirtGpuResource::wait() {
+int LinuxVirtGpuBlob::wait() {
     int ret;
     struct drm_virtgpu_3d_wait wait_3d = {0};
 
@@ -109,14 +109,14 @@ int LinuxVirtGpuResource::wait() {
     return 0;
 }
 
-int LinuxVirtGpuResource::transferToHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
+int LinuxVirtGpuBlob::transferToHost(uint32_t offset, uint32_t size) {
     int ret;
     struct drm_virtgpu_3d_transfer_to_host xfer = {0};
 
-    xfer.box.x = x;
-    xfer.box.y = y;
-    xfer.box.w = w;
-    xfer.box.h = h;
+    xfer.box.x = offset;
+    xfer.box.y = 0;
+    xfer.box.w = size;
+    xfer.box.h = 1;
     xfer.box.d = 1;
     xfer.bo_handle = mBlobHandle;
 
@@ -129,14 +129,14 @@ int LinuxVirtGpuResource::transferToHost(uint32_t x, uint32_t y, uint32_t w, uin
     return 0;
 }
 
-int LinuxVirtGpuResource::transferFromHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
+int LinuxVirtGpuBlob::transferFromHost(uint32_t offset, uint32_t size) {
     int ret;
     struct drm_virtgpu_3d_transfer_from_host xfer = {0};
 
-    xfer.box.x = x;
-    xfer.box.y = y;
-    xfer.box.w = w;
-    xfer.box.h = h;
+    xfer.box.x = offset;
+    xfer.box.y = 0;
+    xfer.box.w = size;
+    xfer.box.h = 1;
     xfer.box.d = 1;
     xfer.bo_handle = mBlobHandle;
 

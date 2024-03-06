@@ -23,25 +23,14 @@ namespace vk {
 std::unique_ptr<ColorBufferVk> ColorBufferVk::create(uint32_t handle, uint32_t width,
                                                      uint32_t height, GLenum format,
                                                      FrameworkFormat frameworkFormat,
-                                                     bool vulkanOnly, uint32_t memoryProperty,
-                                                     android::base::Stream* stream) {
+                                                     bool vulkanOnly, uint32_t memoryProperty) {
     if (!createVkColorBuffer(width, height, format, frameworkFormat, handle, vulkanOnly,
                              memoryProperty)) {
         GL_LOG("Failed to create ColorBufferVk:%d", handle);
         return nullptr;
     }
-    if (getGlobalVkEmulation()->features.VulkanSnapshots.enabled && stream) {
-        VkImageLayout currentLayout = static_cast<VkImageLayout>(stream->getBe32());
-        setColorBufferCurrentLayout(handle, currentLayout);
-    }
-    return std::unique_ptr<ColorBufferVk>(new ColorBufferVk(handle));
-}
 
-void ColorBufferVk::onSave(android::base::Stream* stream) {
-    if (!getGlobalVkEmulation()->features.VulkanSnapshots.enabled) {
-        return;
-    }
-    stream->putBe32(static_cast<uint32_t>(getColorBufferCurrentLayout(mHandle)));
+    return std::unique_ptr<ColorBufferVk>(new ColorBufferVk(handle));
 }
 
 ColorBufferVk::ColorBufferVk(uint32_t handle) : mHandle(handle) {}
@@ -77,8 +66,6 @@ bool ColorBufferVk::importExtMemoryHandle(void* nativeResource, uint32_t type,
         *reinterpret_cast<VK_EXT_MEMORY_HANDLE*>(&nativeResource);
     return importExtMemoryHandleToVkColorBuffer(mHandle, type, extMemoryHandle);
 }
-
-int ColorBufferVk::waitSync() { return waitSyncVkColorBuffer(mHandle); }
 
 }  // namespace vk
 }  // namespace gfxstream

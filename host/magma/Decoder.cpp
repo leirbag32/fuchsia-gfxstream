@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "Decoder.h"
+#include "host/magma/Decoder.h"
 
 #include "RenderThreadInfoMagma.h"
 

@@ -1667,8 +1667,6 @@ void deepcopy_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -1761,8 +1759,6 @@ DEFINE_ALIAS_FUNCTION(deepcopy_VkPipelineShaderStageRequiredSubgroupSizeCreateIn
 DEFINE_ALIAS_FUNCTION(deepcopy_VkPhysicalDeviceToolProperties,
                       deepcopy_VkPhysicalDeviceToolPropertiesEXT)
 
-#endif
-#ifdef VK_EXT_validation_features
 #endif
 #ifdef VK_EXT_provoking_vertex
 void deepcopy_VkPhysicalDeviceProvokingVertexFeaturesEXT(
@@ -1893,17 +1889,6 @@ void deepcopy_VkDeviceDeviceMemoryReportCreateInfoEXT(
     VkDeviceDeviceMemoryReportCreateInfoEXT* to);
 
 #endif
-#ifdef VK_EXT_robustness2
-void deepcopy_VkPhysicalDeviceRobustness2FeaturesEXT(
-    Allocator* alloc, VkStructureType rootType, const VkPhysicalDeviceRobustness2FeaturesEXT* from,
-    VkPhysicalDeviceRobustness2FeaturesEXT* to);
-
-void deepcopy_VkPhysicalDeviceRobustness2PropertiesEXT(
-    Allocator* alloc, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2PropertiesEXT* from,
-    VkPhysicalDeviceRobustness2PropertiesEXT* to);
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void deepcopy_VkSamplerCustomBorderColorCreateInfoEXT(
     Allocator* alloc, VkStructureType rootType, const VkSamplerCustomBorderColorCreateInfoEXT* from,
@@ -1934,8 +1919,6 @@ DEFINE_ALIAS_FUNCTION(deepcopy_VkPrivateDataSlotCreateInfo, deepcopy_VkPrivateDa
 DEFINE_ALIAS_FUNCTION(deepcopy_VkPhysicalDevicePipelineCreationCacheControlFeatures,
                       deepcopy_VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT)
 
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void deepcopy_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(

@@ -38,11 +38,10 @@ class RenderThread : public android::base::Thread {
     using MemStream = android::base::MemStream;
 
 public:
-    static constexpr uint32_t INVALID_CONTEXT_ID = std::numeric_limits<uint32_t>::max();
     // Create a new RenderThread instance.
     RenderThread(RenderChannelImpl* channel,
                  android::base::Stream* loadStream = nullptr,
-                 uint32_t virtioGpuContextId = INVALID_CONTEXT_ID);
+                 uint32_t virtioGpuContextId = -1);
 
     // Create a new RenderThread instance tied to the address space device.
     RenderThread(

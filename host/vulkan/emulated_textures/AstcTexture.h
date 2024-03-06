@@ -14,7 +14,7 @@
 #pragma once
 
 #include "compressedTextureFormats/AstcCpuDecompressor.h"
-#include "vulkan/VkDecoderContext.h"
+#include "host/vulkan/VkDecoderContext.h"
 #include "goldfish_vk_dispatch.h"
 #include "vulkan/vulkan.h"
 

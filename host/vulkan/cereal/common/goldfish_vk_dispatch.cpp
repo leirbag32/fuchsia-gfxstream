@@ -149,8 +149,6 @@ namespace vk {
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -177,8 +175,6 @@ namespace vk {
 #endif
 #ifdef VK_EXT_tooling_info
 #endif
-#ifdef VK_EXT_validation_features
-#endif
 #ifdef VK_EXT_provoking_vertex
 #endif
 #ifdef VK_EXT_line_rasterization
@@ -197,15 +193,11 @@ namespace vk {
 #endif
 #ifdef VK_EXT_device_memory_report
 #endif
-#ifdef VK_EXT_robustness2
-#endif
 #ifdef VK_EXT_custom_border_color
 #endif
 #ifdef VK_EXT_private_data
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 #endif
@@ -896,10 +888,6 @@ void init_vulkan_dispatch_from_system_loader(DlOpenFunc dlOpenFunc, DlSymFunc dl
     out->vkSetPrivateDataEXT = (PFN_vkSetPrivateDataEXT)dlSymFunc(lib, "vkSetPrivateDataEXT");
     out->vkGetPrivateDataEXT = (PFN_vkGetPrivateDataEXT)dlSymFunc(lib, "vkGetPrivateDataEXT");
 #endif
-#ifdef VK_EXT_metal_objects
-    out->vkExportMetalObjectsEXT =
-        (PFN_vkExportMetalObjectsEXT)dlSymFunc(lib, "vkExportMetalObjectsEXT");
-#endif
 #ifdef VK_EXT_extended_dynamic_state2
     out->vkCmdSetPatchControlPointsEXT =
         (PFN_vkCmdSetPatchControlPointsEXT)dlSymFunc(lib, "vkCmdSetPatchControlPointsEXT");
@@ -967,14 +955,6 @@ void init_vulkan_dispatch_from_system_loader(DlOpenFunc dlOpenFunc, DlSymFunc dl
 #ifdef VK_QNX_external_memory_screen_buffer
     out->vkGetScreenBufferPropertiesQNX =
         (PFN_vkGetScreenBufferPropertiesQNX)dlSymFunc(lib, "vkGetScreenBufferPropertiesQNX");
-#endif
-#ifdef VK_MVK_moltenvk
-    out->vkGetMTLDeviceMVK = (PFN_vkGetMTLDeviceMVK)dlSymFunc(lib, "vkGetMTLDeviceMVK");
-    out->vkSetMTLTextureMVK = (PFN_vkSetMTLTextureMVK)dlSymFunc(lib, "vkSetMTLTextureMVK");
-    out->vkGetMTLTextureMVK = (PFN_vkGetMTLTextureMVK)dlSymFunc(lib, "vkGetMTLTextureMVK");
-    out->vkGetMTLBufferMVK = (PFN_vkGetMTLBufferMVK)dlSymFunc(lib, "vkGetMTLBufferMVK");
-    out->vkUseIOSurfaceMVK = (PFN_vkUseIOSurfaceMVK)dlSymFunc(lib, "vkUseIOSurfaceMVK");
-    out->vkGetIOSurfaceMVK = (PFN_vkGetIOSurfaceMVK)dlSymFunc(lib, "vkGetIOSurfaceMVK");
 #endif
 }
 
@@ -1835,10 +1815,6 @@ void init_vulkan_dispatch_from_instance(VulkanDispatch* vk, VkInstance instance,
         (PFN_vkSetPrivateDataEXT)vk->vkGetInstanceProcAddr(instance, "vkSetPrivateDataEXT");
     out->vkGetPrivateDataEXT =
         (PFN_vkGetPrivateDataEXT)vk->vkGetInstanceProcAddr(instance, "vkGetPrivateDataEXT");
-#endif
-#ifdef VK_EXT_metal_objects
-    out->vkExportMetalObjectsEXT =
-        (PFN_vkExportMetalObjectsEXT)vk->vkGetInstanceProcAddr(instance, "vkExportMetalObjectsEXT");
 #endif
 #ifdef VK_EXT_extended_dynamic_state2
     out->vkCmdSetPatchControlPointsEXT =
@@ -2762,10 +2738,6 @@ void init_vulkan_dispatch_from_device(VulkanDispatch* vk, VkDevice device, Vulka
         (PFN_vkSetPrivateDataEXT)vk->vkGetDeviceProcAddr(device, "vkSetPrivateDataEXT");
     out->vkGetPrivateDataEXT =
         (PFN_vkGetPrivateDataEXT)vk->vkGetDeviceProcAddr(device, "vkGetPrivateDataEXT");
-#endif
-#ifdef VK_EXT_metal_objects
-    out->vkExportMetalObjectsEXT =
-        (PFN_vkExportMetalObjectsEXT)vk->vkGetDeviceProcAddr(device, "vkExportMetalObjectsEXT");
 #endif
 #ifdef VK_EXT_extended_dynamic_state2
     out->vkCmdSetPatchControlPointsEXT = (PFN_vkCmdSetPatchControlPointsEXT)vk->vkGetDeviceProcAddr(

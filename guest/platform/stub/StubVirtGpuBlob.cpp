@@ -16,25 +16,31 @@
 
 #include "StubVirtGpu.h"
 
-StubVirtGpuResource::StubVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle,
-                                         uint32_t resourceHandle, uint64_t size)
+StubVirtGpuBlob::StubVirtGpuBlob(int64_t deviceHandle, uint32_t blobHandle, uint32_t resourceHandle,
+                         uint64_t size)
     : mDeviceHandle(deviceHandle),
       mBlobHandle(blobHandle),
       mResourceHandle(resourceHandle),
       mSize(size) {}
 
-StubVirtGpuResource::~StubVirtGpuResource() {
+StubVirtGpuBlob::~StubVirtGpuBlob() {
     // Unimplemented stub
 }
 
-uint32_t StubVirtGpuResource::getBlobHandle() const { return 0; }
+uint32_t StubVirtGpuBlob::getBlobHandle() const { return 0; }
 
-uint32_t StubVirtGpuResource::getResourceHandle() const { return 0; }
+uint32_t StubVirtGpuBlob::getResourceHandle() const { return 0; }
 
-VirtGpuResourceMappingPtr StubVirtGpuResource::createMapping() { return nullptr; }
+VirtGpuBlobMappingPtr StubVirtGpuBlob::createMapping() { return nullptr; }
 
-int StubVirtGpuResource::wait() { return -1; }
+int StubVirtGpuBlob::wait() {
+    return -1;
+}
 
-int StubVirtGpuResource::transferFromHost(uint32_t, uint32_t, uint32_t, uint32_t) { return -1; }
+int StubVirtGpuBlob::transferFromHost(uint32_t, uint32_t) {
+    return -1;
+}
 
-int StubVirtGpuResource::transferToHost(uint32_t, uint32_t, uint32_t, uint32_t) { return -1; }
+int StubVirtGpuBlob::transferToHost(uint32_t, uint32_t) {
+    return -1;
+}

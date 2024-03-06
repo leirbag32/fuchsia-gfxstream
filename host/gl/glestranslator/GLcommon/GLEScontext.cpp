@@ -404,6 +404,7 @@ void GLEScontext::initGlobal(EGLiface* iface) {
 void GLEScontext::init(bool nativeTextureDecompressionEnabled) {
     if (!m_initialized) {
         m_nativeTextureDecompressionEnabled = nativeTextureDecompressionEnabled;
+
         initExtensionString();
 
         m_maxTexUnits = getMaxCombinedTexUnits();
@@ -1958,10 +1959,7 @@ void GLEScontext::initCapsLocked(const GLubyte * extensionString, bool nativeTex
         glSupport.ext_GL_EXT_multiview_texture_multisample = true;
     }
 
-    // b/203446380
-    // Does not really work on hardware GPUs
-    if (strstr(cstring,"GL_EXT_shader_framebuffer_fetch")!=NULL
-            && isGles2Gles()) {
+    if (strstr(cstring,"GL_EXT_shader_framebuffer_fetch")!=NULL) {
         glSupport.ext_GL_EXT_shader_framebuffer_fetch = true;
     }
 

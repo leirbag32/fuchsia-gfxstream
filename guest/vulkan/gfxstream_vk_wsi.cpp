@@ -33,8 +33,8 @@ VkResult gfxstream_vk_wsi_init(struct gfxstream_vk_physical_device* physical_dev
 
     // Allow guest-side modifier code paths
     physical_device->wsi_device.supports_modifiers = true;
-    // Support wsi_image_create_info::scanout
-    physical_device->wsi_device.supports_scanout = true;
+    // For DRM, uses the buffer-blit path for WSI images
+    physical_device->wsi_device.supports_scanout = false;
 
     physical_device->vk.wsi_device = &physical_device->wsi_device;
 

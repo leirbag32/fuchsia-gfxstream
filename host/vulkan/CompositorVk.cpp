@@ -182,10 +182,8 @@ CompositorVk::~CompositorVk() {
     m_vk.vkDestroyBuffer(m_vkDevice, m_vertexVkBuffer, nullptr);
     m_vk.vkFreeMemory(m_vkDevice, m_indexVkDeviceMemory, nullptr);
     m_vk.vkDestroyBuffer(m_vkDevice, m_indexVkBuffer, nullptr);
-    for (auto& [_, formatResources] : m_formatResources) {
-        m_vk.vkDestroyPipeline(m_vkDevice, formatResources.m_graphicsVkPipeline, nullptr);
-        m_vk.vkDestroyRenderPass(m_vkDevice, formatResources.m_vkRenderPass, nullptr);
-    }
+    m_vk.vkDestroyPipeline(m_vkDevice, m_graphicsVkPipeline, nullptr);
+    m_vk.vkDestroyRenderPass(m_vkDevice, m_vkRenderPass, nullptr);
     m_vk.vkDestroyPipelineLayout(m_vkDevice, m_vkPipelineLayout, nullptr);
     m_vk.vkDestroySampler(m_vkDevice, m_vkSampler, nullptr);
     m_vk.vkDestroyDescriptorSetLayout(m_vkDevice, m_vkDescriptorSetLayout, nullptr);
@@ -333,8 +331,8 @@ void CompositorVk::setUpGraphicsPipeline() {
     VK_CHECK(
         m_vk.vkCreatePipelineLayout(m_vkDevice, &pipelineLayoutCi, nullptr, &m_vkPipelineLayout));
 
-    VkAttachmentDescription colorAttachment = {
-        .format = VK_FORMAT_UNDEFINED,
+    const VkAttachmentDescription colorAttachment = {
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -377,8 +375,9 @@ void CompositorVk::setUpGraphicsPipeline() {
         .dependencyCount = 1,
         .pDependencies = &subpassDependency,
     };
+    VK_CHECK(m_vk.vkCreateRenderPass(m_vkDevice, &renderPassCi, nullptr, &m_vkRenderPass));
 
-    VkGraphicsPipelineCreateInfo graphicsPipelineCi = {
+    const VkGraphicsPipelineCreateInfo graphicsPipelineCi = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = static_cast<uint32_t>(std::size(shaderStageCis)),
         .pStages = shaderStageCis,
@@ -391,33 +390,13 @@ void CompositorVk::setUpGraphicsPipeline() {
         .pColorBlendState = &colorBlendStateCi,
         .pDynamicState = &dynamicStateCi,
         .layout = m_vkPipelineLayout,
-        .renderPass = VK_NULL_HANDLE,
+        .renderPass = m_vkRenderPass,
         .subpass = 0,
         .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1,
     };
-
-    const std::vector<VkFormat> kRenderTargetFormats = {
-        VK_FORMAT_R8G8B8A8_UNORM,
-        VK_FORMAT_B8G8R8A8_UNORM,
-    };
-    for (VkFormat renderTargetFormat : kRenderTargetFormats) {
-        colorAttachment.format = renderTargetFormat;
-
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        VK_CHECK(m_vk.vkCreateRenderPass(m_vkDevice, &renderPassCi, nullptr, &renderPass));
-
-        graphicsPipelineCi.renderPass = renderPass;
-
-        VkPipeline pipeline = VK_NULL_HANDLE;
-        VK_CHECK(m_vk.vkCreateGraphicsPipelines(m_vkDevice, VK_NULL_HANDLE, 1, &graphicsPipelineCi,
-                                                nullptr, &pipeline));
-
-        m_formatResources[renderTargetFormat] = PerFormatResources{
-            .m_vkRenderPass = renderPass,
-            .m_graphicsVkPipeline = pipeline,
-        };
-    }
+    VK_CHECK(m_vk.vkCreateGraphicsPipelines(m_vkDevice, VK_NULL_HANDLE, 1, &graphicsPipelineCi,
+                                            nullptr, &m_graphicsVkPipeline));
 
     m_vk.vkDestroyShaderModule(m_vkDevice, vertShaderMod, nullptr);
     m_vk.vkDestroyShaderModule(m_vkDevice, fragShaderMod, nullptr);
@@ -883,16 +862,9 @@ CompositorVk::RenderTarget* CompositorVk::getOrCreateRenderTargetInfo(
         return renderTargetPtr->get();
     }
 
-    auto formatResourcesIt = m_formatResources.find(imageInfo.imageCreateInfo.format);
-    if (formatResourcesIt == m_formatResources.end()) {
-        return nullptr;
-    }
-    auto& formatResources = formatResourcesIt->second;
-
-    auto* renderTarget =
-        new RenderTarget(m_vk, m_vkDevice, imageInfo.image, imageInfo.imageView,
-                         imageInfo.imageCreateInfo.extent.width,
-                         imageInfo.imageCreateInfo.extent.height, formatResources.m_vkRenderPass);
+    auto* renderTarget = new RenderTarget(m_vk, m_vkDevice, imageInfo.image, imageInfo.imageView,
+                                          imageInfo.imageCreateInfo.extent.width,
+                                          imageInfo.imageCreateInfo.extent.height, m_vkRenderPass);
 
     m_renderTargetCache.set(imageInfo.id, std::unique_ptr<RenderTarget>(renderTarget));
 
@@ -926,8 +898,7 @@ bool CompositorVk::canCompositeTo(const VkImageCreateInfo& imageCi) {
             string_VkImageUsageFlags(imageCi.usage).c_str());
         return false;
     }
-
-    if (m_formatResources.find(imageCi.format) == m_formatResources.end()) {
+    if (imageCi.format != k_renderTargetFormat) {
         ERR("The format of the image, %s, is not supported by the CompositorVk as the render "
             "target.",
             string_VkFormat(imageCi.format));
@@ -939,24 +910,13 @@ bool CompositorVk::canCompositeTo(const VkImageCreateInfo& imageCi) {
 void CompositorVk::buildCompositionVk(const CompositionRequest& compositionRequest,
                                       CompositionVk* compositionVk) {
     const BorrowedImageInfoVk* targetImage = getInfoOrAbort(compositionRequest.target);
-
-    auto formatResourcesIt = m_formatResources.find(targetImage->imageCreateInfo.format);
-    if (formatResourcesIt == m_formatResources.end()) {
-        GFXSTREAM_ABORT(FatalError(ABORT_REASON_OTHER))
-            << "CompositorVk did not find format resource for format "
-            << targetImage->imageCreateInfo.format;
-    }
-    const auto& formatResources = formatResourcesIt->second;
-
     RenderTarget* targetImageRenderTarget = getOrCreateRenderTargetInfo(*targetImage);
 
     const uint32_t targetWidth = targetImage->width;
     const uint32_t targetHeight = targetImage->height;
 
     compositionVk->targetImage = targetImage;
-    compositionVk->targetRenderPass = formatResources.m_vkRenderPass;
     compositionVk->targetFramebuffer = targetImageRenderTarget->m_vkFramebuffer;
-    compositionVk->pipeline = formatResources.m_graphicsVkPipeline;
 
     for (const CompositionRequestLayer& layer : compositionRequest.layers) {
         uint32_t sourceImageWidth = 0;
@@ -1163,7 +1123,7 @@ CompositorVk::CompositionFinishedWaitable CompositorVk::compose(
     };
     const VkRenderPassBeginInfo renderPassBeginInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = compositionVk.targetRenderPass,
+        .renderPass = m_vkRenderPass,
         .framebuffer = compositionVk.targetFramebuffer,
         .renderArea =
             {
@@ -1183,7 +1143,7 @@ CompositorVk::CompositionFinishedWaitable CompositorVk::compose(
     };
     m_vk.vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    m_vk.vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, compositionVk.pipeline);
+    m_vk.vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsVkPipeline);
 
     const VkRect2D scissor = {
         .offset =

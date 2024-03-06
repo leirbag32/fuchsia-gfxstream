@@ -1524,8 +1524,6 @@ void count_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -1610,8 +1608,6 @@ DEFINE_ALIAS_FUNCTION(count_VkPipelineShaderStageRequiredSubgroupSizeCreateInfo,
 #ifdef VK_EXT_tooling_info
 DEFINE_ALIAS_FUNCTION(count_VkPhysicalDeviceToolProperties, count_VkPhysicalDeviceToolPropertiesEXT)
 
-#endif
-#ifdef VK_EXT_validation_features
 #endif
 #ifdef VK_EXT_provoking_vertex
 void count_VkPhysicalDeviceProvokingVertexFeaturesEXT(
@@ -1724,16 +1720,6 @@ void count_VkDeviceDeviceMemoryReportCreateInfoEXT(
     const VkDeviceDeviceMemoryReportCreateInfoEXT* toCount, size_t* count);
 
 #endif
-#ifdef VK_EXT_robustness2
-void count_VkPhysicalDeviceRobustness2FeaturesEXT(
-    uint32_t featureBits, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2FeaturesEXT* toCount, size_t* count);
-
-void count_VkPhysicalDeviceRobustness2PropertiesEXT(
-    uint32_t featureBits, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2PropertiesEXT* toCount, size_t* count);
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void count_VkSamplerCustomBorderColorCreateInfoEXT(
     uint32_t featureBits, VkStructureType rootType,
@@ -1761,8 +1747,6 @@ DEFINE_ALIAS_FUNCTION(count_VkPrivateDataSlotCreateInfo, count_VkPrivateDataSlot
 DEFINE_ALIAS_FUNCTION(count_VkPhysicalDevicePipelineCreationCacheControlFeatures,
                       count_VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT)
 
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void count_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(

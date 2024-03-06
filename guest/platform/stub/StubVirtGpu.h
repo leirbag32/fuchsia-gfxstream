@@ -18,24 +18,22 @@
 
 #include "VirtGpu.h"
 
-class StubVirtGpuResource : public std::enable_shared_from_this<StubVirtGpuResource>,
-                            public VirtGpuResource {
-   public:
-    StubVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle, uint32_t resourceHandle,
-                        uint64_t size);
-    ~StubVirtGpuResource();
+class StubVirtGpuBlob : public std::enable_shared_from_this<StubVirtGpuBlob>, public VirtGpuBlob {
+  public:
+    StubVirtGpuBlob(int64_t deviceHandle, uint32_t blobHandle, uint32_t resourceHandle, uint64_t size);
+    ~StubVirtGpuBlob();
 
     uint32_t getResourceHandle() const override;
     uint32_t getBlobHandle() const override;
     int wait(void) override;
 
-    VirtGpuResourceMappingPtr createMapping(void) override;
+    VirtGpuBlobMappingPtr createMapping(void) override;
     int exportBlob(struct VirtGpuExternalHandle& handle) override;
 
-    int transferFromHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) override;
-    int transferToHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) override;
+    int transferFromHost(uint32_t offset, uint32_t size) override;
+    int transferToHost(uint32_t offset, uint32_t size) override;
 
-   private:
+  private:
     // Not owned.  Really should use a ScopedFD for this, but doesn't matter since we have a
     // singleton deviceimplemenentation anyways.
     int64_t mDeviceHandle;
@@ -45,17 +43,17 @@ class StubVirtGpuResource : public std::enable_shared_from_this<StubVirtGpuResou
     uint64_t mSize;
 };
 
-class StubVirtGpuResourceMapping : public VirtGpuResourceMapping {
-   public:
-    StubVirtGpuResourceMapping(VirtGpuResourcePtr blob, uint8_t* ptr, uint64_t size);
-    ~StubVirtGpuResourceMapping(void);
+class StubVirtGpuBlobMapping : public VirtGpuBlobMapping {
+  public:
+    StubVirtGpuBlobMapping(VirtGpuBlobPtr blob, uint8_t* ptr, uint64_t size);
+    ~StubVirtGpuBlobMapping(void);
 
     uint8_t* asRawPtr(void) override;
 
   private:
-   VirtGpuResourcePtr mBlob;
-   uint8_t* mPtr;
-   uint64_t mSize;
+    VirtGpuBlobPtr mBlob;
+    uint8_t* mPtr;
+    uint64_t mSize;
 };
 
 class StubVirtGpuDevice : public VirtGpuDevice {
@@ -67,17 +65,16 @@ class StubVirtGpuDevice : public VirtGpuDevice {
 
     struct VirtGpuCaps getCaps(void) override;
 
-    VirtGpuResourcePtr createBlob(const struct VirtGpuCreateBlob& blobCreate) override;
-    VirtGpuResourcePtr createResource(uint32_t width, uint32_t height, uint32_t stride,
-                                      uint32_t virglFormat, uint32_t target, uint32_t bind);
-    VirtGpuResourcePtr importBlob(const struct VirtGpuExternalHandle& handle) override;
+    VirtGpuBlobPtr createBlob(const struct VirtGpuCreateBlob& blobCreate) override;
+    VirtGpuBlobPtr createVirglBlob(uint32_t width, uint32_t height, uint32_t virglFormat);
+    VirtGpuBlobPtr importBlob(const struct VirtGpuExternalHandle& handle) override;
 
-    int execBuffer(struct VirtGpuExecBuffer& execbuffer, const VirtGpuResource* blob) override;
+    int execBuffer(struct VirtGpuExecBuffer& execbuffer, const VirtGpuBlob* blob) override;
 
-    virtual VirtGpuResourcePtr createColorBuffer(int width, int height, uint32_t glFormat);
-    virtual VirtGpuResourcePtr createColorBuffer(int size);
+    virtual VirtGpuBlobPtr createColorBuffer(int width, int height, uint32_t glFormat);
+    virtual VirtGpuBlobPtr createColorBuffer(int size);
 
-   private:
+  private:
     int64_t mDeviceHandle;
 
     struct VirtGpuCaps mCaps;

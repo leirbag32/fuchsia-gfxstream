@@ -77,7 +77,6 @@ using emugl::ABORT_REASON_OTHER;
 using emugl::CreateHealthMonitor;
 using emugl::FatalError;
 using emugl::GfxApiLogger;
-using gfxstream::host::FeatureSet;
 
 #if GFXSTREAM_ENABLE_HOST_GLES
 using gl::DisplaySurfaceGl;
@@ -257,15 +256,12 @@ void MaybeIncreaseFileDescriptorSoftLimit() {
             return;
         }
 
-        INFO("Raised nofile soft limit to %d.", static_cast<int>(requestedSoftLimit));
-    } else {
-        INFO("Not raising nofile soft limit from %d.", static_cast<int>(softLimit));
+        GL_LOG("Raised nofile soft limit to %d.", static_cast<int>(requestedSoftLimit));
     }
 #endif
 }
 
-bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet features,
-                             bool useSubWindow, bool egl2egl) {
+bool FrameBuffer::initialize(int width, int height, bool useSubWindow, bool egl2egl) {
     GL_LOG("FrameBuffer::initialize");
 
     if (s_theFrameBuffer != NULL) {
@@ -279,7 +275,7 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
     //
     // allocate space for the FrameBuffer object
     //
-    std::unique_ptr<FrameBuffer> fb(new FrameBuffer(width, height, features, useSubWindow));
+    std::unique_ptr<FrameBuffer> fb(new FrameBuffer(width, height, useSubWindow));
     if (!fb) {
         GL_LOG("Failed to create fb");
         ERR("Failed to create fb\n");
@@ -314,9 +310,10 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
     // against those contexts.
     vk::VkEmulation* vkEmu = nullptr;
     vk::VulkanDispatch* vkDispatch = nullptr;
-    if (fb->m_features.Vulkan.enabled) {
+    if (feature_is_enabled(kFeature_Vulkan)) {
         vkDispatch = vk::vkDispatch(false /* not for testing */);
-        vkEmu = vk::createGlobalVkEmulation(vkDispatch, fb->m_features);
+        vkEmu = vk::createGlobalVkEmulation(vkDispatch,
+                                            feature_is_enabled(kFeature_VulkanNativeSwapchain));
         if (!vkEmu) {
             ERR("Failed to initialize global Vulkan emulation. Disable the Vulkan support.");
         }
@@ -324,7 +321,7 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
     }
     if (vkEmu) {
         fb->m_vulkanEnabled = true;
-        if (fb->m_features.VulkanNativeSwapchain.enabled) {
+        if (feature_is_enabled(kFeature_VulkanNativeSwapchain)) {
             fb->m_vkInstance = vkEmu->instance;
         }
         if (vkEmu->deviceInfo.supportsIdProperties) {
@@ -339,8 +336,8 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
 
 #if GFXSTREAM_ENABLE_HOST_GLES
     // Do not initialize GL emulation if the guest is using ANGLE.
-    if (!fb->m_features.GuestUsesAngle.enabled) {
-        fb->m_emulationGl = EmulationGl::create(width, height, fb->m_features, useSubWindow, egl2egl);
+    if (!feature_is_enabled(kFeature_GuestUsesAngle)) {
+        fb->m_emulationGl = EmulationGl::create(width, height, useSubWindow, egl2egl);
         if (!fb->m_emulationGl) {
             ERR("Failed to initialize GL emulation.");
             return false;
@@ -348,10 +345,12 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
     }
 #endif
 
-    fb->m_guestUsesAngle = fb->m_features.GuestUsesAngle.enabled;
+    fb->m_guestUsesAngle =
+        feature_is_enabled(
+            kFeature_GuestUsesAngle);
 
-    fb->m_useVulkanComposition = fb->m_features.GuestUsesAngle.enabled ||
-                                 fb->m_features.VulkanNativeSwapchain.enabled;
+    fb->m_useVulkanComposition = feature_is_enabled(kFeature_GuestUsesAngle) ||
+                                 feature_is_enabled(kFeature_VulkanNativeSwapchain);
 
     std::unique_ptr<VkEmulationFeatures> vkEmulationFeatures =
         std::make_unique<VkEmulationFeatures>(VkEmulationFeatures{
@@ -364,7 +363,7 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
                     "ANDROID_EMU_VK_DISABLE_USE_CREATE_RESOURCES_WITH_REQUIREMENTS")
                     .empty(),
             .useVulkanComposition = fb->m_useVulkanComposition,
-            .useVulkanNativeSwapchain = fb->m_features.VulkanNativeSwapchain.enabled,
+            .useVulkanNativeSwapchain = feature_is_enabled(kFeature_VulkanNativeSwapchain),
             .guestRenderDoc = std::move(renderDocMultipleVkInstances),
             .astcLdrEmulationMode = AstcEmulationMode::Gpu,
             .enableEtc2Emulation = true,
@@ -378,7 +377,7 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
     // current-context when asked for them.
     //
     bool useVulkanGraphicsDiagInfo =
-        vkEmu && fb->m_features.VulkanNativeSwapchain.enabled && fb->m_guestUsesAngle;
+        vkEmu && feature_is_enabled(kFeature_VulkanNativeSwapchain) && fb->m_guestUsesAngle;
 
     if (useVulkanGraphicsDiagInfo) {
         fb->m_graphicsAdapterVendor = vkEmu->deviceInfo.driverVendor;
@@ -473,7 +472,7 @@ bool FrameBuffer::initialize(int width, int height, gfxstream::host::FeatureSet 
 
     GL_LOG("glvk interop final: %d", fb->m_vulkanInteropSupported);
     vkEmulationFeatures->glInteropSupported = fb->m_vulkanInteropSupported;
-    if (fb->m_features.Vulkan.enabled) {
+    if (feature_is_enabled(kFeature_Vulkan)) {
         vk::initVkEmulationFeatures(std::move(vkEmulationFeatures));
         if (vkEmu && vkEmu->displayVk) {
             fb->m_displayVk = vkEmu->displayVk.get();
@@ -556,9 +555,8 @@ void FrameBuffer::finalize() {
     }
 }
 
-FrameBuffer::FrameBuffer(int p_width, int p_height, gfxstream::host::FeatureSet features, bool useSubWindow)
-    : m_features(features),
-      m_framebufferWidth(p_width),
+FrameBuffer::FrameBuffer(int p_width, int p_height, bool useSubWindow)
+    : m_framebufferWidth(p_width),
       m_framebufferHeight(p_height),
       m_windowWidth(p_width),
       m_windowHeight(p_height),
@@ -568,9 +566,9 @@ FrameBuffer::FrameBuffer(int p_width, int p_height, gfxstream::host::FeatureSet 
       m_perfThread(new PerfStatThread(&m_perfStats)),
       m_readbackThread(
           [this](FrameBuffer::Readback&& readback) { return sendReadbackWorkerCmd(readback); }),
-      m_refCountPipeEnabled(features.RefCountPipe.enabled),
-      m_noDelayCloseColorBufferEnabled(features.NoDelayCloseColorBuffer.enabled ||
-                                       features.Minigbm.enabled),
+      m_refCountPipeEnabled(feature_is_enabled(kFeature_RefCountPipe)),
+      m_noDelayCloseColorBufferEnabled(feature_is_enabled(kFeature_NoDelayCloseColorBuffer) ||
+                                       feature_is_enabled(kFeature_Minigbm)),
       m_postThread([this](Post&& post) { return postWorkerFunc(post); }),
       m_logger(CreateMetricsLogger()),
       m_healthMonitor(CreateHealthMonitor(*m_logger)) {
@@ -594,25 +592,6 @@ FrameBuffer::~FrameBuffer() {
     m_postThread.enqueue({PostCmd::Exit});
     m_postThread.join();
     m_postWorker.reset();
-
-    // Run other cleanup callbacks
-    // Avoid deadlock by first storing a separate list of callbacks
-    std::vector<std::function<void()>> callbacks;
-    for (auto procIte : m_procOwnedCleanupCallbacks)
-    {
-        for (auto it : procIte.second) {
-            callbacks.push_back(it.second);
-        }
-    }
-    m_procOwnedCleanupCallbacks.clear();
-
-    fbLock.unlock();
-
-    for (auto cb : callbacks) {
-        cb();
-    }
-
-    fbLock.lock();
 
     if (m_useSubWindow) {
         removeSubWindow_locked();
@@ -1143,8 +1122,8 @@ HandleType FrameBuffer::createColorBuffer(int p_width,
 }
 
 void FrameBuffer::createColorBufferWithHandle(int p_width, int p_height, GLenum p_internalFormat,
-                                              FrameworkFormat p_frameworkFormat, HandleType handle,
-                                              bool p_linear) {
+                                              FrameworkFormat p_frameworkFormat,
+                                              HandleType handle) {
     {
         AutoLock mutex(m_lock);
         sweepColorBuffersLocked();
@@ -1160,17 +1139,18 @@ void FrameBuffer::createColorBufferWithHandle(int p_width, int p_height, GLenum 
         }
 
         createColorBufferWithHandleLocked(p_width, p_height, p_internalFormat, p_frameworkFormat,
-                                          handle, p_linear);
+                                          handle);
     }
 }
 
-HandleType FrameBuffer::createColorBufferWithHandleLocked(int p_width, int p_height,
-                                                          GLenum p_internalFormat,
-                                                          FrameworkFormat p_frameworkFormat,
-                                                          HandleType handle, bool p_linear) {
-    ColorBufferPtr cb =
-        ColorBuffer::create(m_emulationGl.get(), m_emulationVk, p_width, p_height, p_internalFormat,
-                            p_frameworkFormat, handle, nullptr /*stream*/, p_linear);
+HandleType FrameBuffer::createColorBufferWithHandleLocked(
+        int p_width,
+        int p_height,
+        GLenum p_internalFormat,
+        FrameworkFormat p_frameworkFormat,
+        HandleType handle) {
+    ColorBufferPtr cb = ColorBuffer::create(m_emulationGl.get(), m_emulationVk, p_width, p_height,
+                                            p_internalFormat, p_frameworkFormat, handle);
     if (cb.get() == nullptr) {
         GFXSTREAM_ABORT(FatalError(ABORT_REASON_OTHER))
             << "Failed to create ColorBuffer:" << handle << " format:" << p_internalFormat
@@ -1939,14 +1919,11 @@ Renderer::FlushReadPixelPipeline FrameBuffer::getFlushReadPixelPipeline() {
 bool FrameBuffer::repost(bool needLockAndBind) {
     GL_LOG("Reposting framebuffer.");
     if (m_displayVk) {
-        setGuestPostedAFrame();
         return true;
     }
     if (m_lastPostedColorBuffer && sInitialized.load(std::memory_order_relaxed)) {
         GL_LOG("Has last posted colorbuffer and is initialized; post.");
-        auto res = postImplSync(m_lastPostedColorBuffer, needLockAndBind, true);
-        if (res) setGuestPostedAFrame();
-        return res;
+        return postImplSync(m_lastPostedColorBuffer, needLockAndBind, true);
     } else {
         GL_LOG("No repost: no last posted color buffer");
         if (!sInitialized.load(std::memory_order_relaxed)) {
@@ -1987,15 +1964,6 @@ static void loadProcOwnedCollection(Stream* stream, Collection* c) {
 int FrameBuffer::getScreenshot(unsigned int nChannels, unsigned int* width, unsigned int* height,
                                uint8_t* pixels, size_t* cPixels, int displayId, int desiredWidth,
                                int desiredHeight, int desiredRotation, Rect rect) {
-#ifdef CONFIG_AEMU
-   if (emugl::shouldSkipDraw()) {
-        *width = 0;
-        *height = 0;
-        *cPixels = 0;
-        return -1;
-    }
-#endif
-
     AutoLock mutex(m_lock);
     uint32_t w, h, cb, screenWidth, screenHeight;
     if (!emugl::get_emugl_multi_display_operations().getMultiDisplay(
@@ -2315,7 +2283,7 @@ void FrameBuffer::onSave(Stream* stream, const android::snapshot::ITextureSaverP
 #endif
 
     // TODO(b/309858017): remove if when ready to bump snapshot version
-    if (m_features.VulkanSnapshots.enabled) {
+    if (feature_is_enabled(kFeature_VulkanSnapshots)) {
         stream->putBe64(m_procOwnedResources.size());
         for (const auto& element : m_procOwnedResources) {
             stream->putBe64(element.first);
@@ -2324,7 +2292,7 @@ void FrameBuffer::onSave(Stream* stream, const android::snapshot::ITextureSaverP
     }
 
     // Save Vulkan state
-    if (m_features.VulkanSnapshots.enabled && vk::VkDecoderGlobalState::get()) {
+    if (feature_is_enabled(kFeature_VulkanSnapshots) && vk::VkDecoderGlobalState::get()) {
         vk::VkDecoderGlobalState::get()->save(stream);
     }
 
@@ -2559,7 +2527,7 @@ bool FrameBuffer::onLoad(Stream* stream,
     loadProcOwnedCollection(stream, &m_procOwnedEmulatedEglContexts);
 #endif
     // TODO(b/309858017): remove if when ready to bump snapshot version
-    if (m_features.VulkanSnapshots.enabled) {
+    if (feature_is_enabled(kFeature_VulkanSnapshots)) {
         size_t resourceCount = stream->getBe64();
         for (size_t i = 0; i < resourceCount; i++) {
             uint64_t puid = stream->getBe64();
@@ -2601,7 +2569,7 @@ bool FrameBuffer::onLoad(Stream* stream,
     }
 
     // Restore Vulkan state
-    if (m_features.VulkanSnapshots.enabled && vk::VkDecoderGlobalState::get()) {
+    if (feature_is_enabled(kFeature_VulkanSnapshots) && vk::VkDecoderGlobalState::get()) {
         lock.unlock();
         GfxApiLogger gfxLogger;
         vk::VkDecoderGlobalState::get()->load(stream, gfxLogger, m_healthMonitor.get());
@@ -2882,8 +2850,7 @@ void FrameBuffer::scheduleVsyncTask(VsyncThread::VsyncTask task) {
 void FrameBuffer::setDisplayConfigs(int configId, int w, int h, int dpiX, int dpiY) {
     AutoLock mutex(m_lock);
     mDisplayConfigs[configId] = {w, h, dpiX, dpiY};
-    INFO("Setting display: %d configuration to: %dx%d, dpi: %dx%d ", configId,
-           w, h, dpiX, dpiY);
+    INFO("setDisplayConfigs w %d h %d dpiX %d dpiY %d", w, h, dpiX, dpiY);
 }
 
 void FrameBuffer::setDisplayActiveConfig(int configId) {
@@ -2968,17 +2935,6 @@ bool FrameBuffer::invalidateColorBufferForVk(HandleType colorBufferHandle) {
         return false;
     }
     return colorBuffer->invalidateForVk();
-}
-
-int FrameBuffer::waitSyncColorBuffer(HandleType colorBufferHandle) {
-    AutoLock mutex(m_lock);
-
-    ColorBufferPtr colorBuffer = findColorBuffer(colorBufferHandle);
-    if (!colorBuffer) {
-        return -1;
-    }
-
-    return colorBuffer->waitSync();
 }
 
 #if GFXSTREAM_ENABLE_HOST_GLES
@@ -3753,16 +3709,16 @@ void FrameBuffer::createYUVTextures(uint32_t type, uint32_t count, int width, in
     RecursiveScopedContextBind bind(getPbufferSurfaceContextHelper());
     for (uint32_t i = 0; i < count; ++i) {
         if (format == FRAMEWORK_FORMAT_NV12) {
-            YUVConverter::createYUVGLTex(GL_TEXTURE0, width, height, format, m_features.Yuv420888ToNv21.enabled,
-                                         YUVPlane::Y, &output[2 * i]);
-            YUVConverter::createYUVGLTex(GL_TEXTURE1, width / 2, height / 2, format, m_features.Yuv420888ToNv21.enabled, YUVPlane::UV,
+            YUVConverter::createYUVGLTex(GL_TEXTURE0, width, height, format, YUVPlane::Y,
+                                         &output[2 * i]);
+            YUVConverter::createYUVGLTex(GL_TEXTURE1, width / 2, height / 2, format, YUVPlane::UV,
                                          &output[2 * i + 1]);
         } else if (format == FRAMEWORK_FORMAT_YUV_420_888) {
-            YUVConverter::createYUVGLTex(GL_TEXTURE0, width, height, format, m_features.Yuv420888ToNv21.enabled, YUVPlane::Y,
+            YUVConverter::createYUVGLTex(GL_TEXTURE0, width, height, format, YUVPlane::Y,
                                          &output[3 * i]);
-            YUVConverter::createYUVGLTex(GL_TEXTURE1, width / 2, height / 2, format, m_features.Yuv420888ToNv21.enabled, YUVPlane::U,
+            YUVConverter::createYUVGLTex(GL_TEXTURE1, width / 2, height / 2, format, YUVPlane::U,
                                          &output[3 * i + 1]);
-            YUVConverter::createYUVGLTex(GL_TEXTURE2, width / 2, height / 2, format, m_features.Yuv420888ToNv21.enabled, YUVPlane::V,
+            YUVConverter::createYUVGLTex(GL_TEXTURE2, width / 2, height / 2, format, YUVPlane::V,
                                          &output[3 * i + 2]);
         }
     }

@@ -7652,182 +7652,9 @@ void deepcopy_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
-void deepcopy_VkDebugUtilsLabelEXT(Allocator* alloc, VkStructureType rootType,
-                                   const VkDebugUtilsLabelEXT* from, VkDebugUtilsLabelEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-    to->pLabelName = nullptr;
-    if (from->pLabelName) {
-        to->pLabelName = alloc->strDup(from->pLabelName);
-    }
-    memcpy(to->color, from->color, 4 * sizeof(float));
-}
-
-void deepcopy_VkDebugUtilsObjectNameInfoEXT(Allocator* alloc, VkStructureType rootType,
-                                            const VkDebugUtilsObjectNameInfoEXT* from,
-                                            VkDebugUtilsObjectNameInfoEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-    to->pObjectName = nullptr;
-    if (from->pObjectName) {
-        to->pObjectName = alloc->strDup(from->pObjectName);
-    }
-}
-
-void deepcopy_VkDebugUtilsMessengerCallbackDataEXT(Allocator* alloc, VkStructureType rootType,
-                                                   const VkDebugUtilsMessengerCallbackDataEXT* from,
-                                                   VkDebugUtilsMessengerCallbackDataEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-    to->pMessageIdName = nullptr;
-    if (from->pMessageIdName) {
-        to->pMessageIdName = alloc->strDup(from->pMessageIdName);
-    }
-    to->pMessage = nullptr;
-    if (from->pMessage) {
-        to->pMessage = alloc->strDup(from->pMessage);
-    }
-    if (from) {
-        to->pQueueLabels = nullptr;
-        if (from->pQueueLabels) {
-            to->pQueueLabels = (VkDebugUtilsLabelEXT*)alloc->alloc(
-                from->queueLabelCount * sizeof(const VkDebugUtilsLabelEXT));
-            to->queueLabelCount = from->queueLabelCount;
-            for (uint32_t i = 0; i < (uint32_t)from->queueLabelCount; ++i) {
-                deepcopy_VkDebugUtilsLabelEXT(alloc, rootType, from->pQueueLabels + i,
-                                              (VkDebugUtilsLabelEXT*)(to->pQueueLabels + i));
-            }
-        }
-    }
-    if (from) {
-        to->pCmdBufLabels = nullptr;
-        if (from->pCmdBufLabels) {
-            to->pCmdBufLabels = (VkDebugUtilsLabelEXT*)alloc->alloc(
-                from->cmdBufLabelCount * sizeof(const VkDebugUtilsLabelEXT));
-            to->cmdBufLabelCount = from->cmdBufLabelCount;
-            for (uint32_t i = 0; i < (uint32_t)from->cmdBufLabelCount; ++i) {
-                deepcopy_VkDebugUtilsLabelEXT(alloc, rootType, from->pCmdBufLabels + i,
-                                              (VkDebugUtilsLabelEXT*)(to->pCmdBufLabels + i));
-            }
-        }
-    }
-    if (from) {
-        to->pObjects = nullptr;
-        if (from->pObjects) {
-            to->pObjects = (VkDebugUtilsObjectNameInfoEXT*)alloc->alloc(
-                from->objectCount * sizeof(const VkDebugUtilsObjectNameInfoEXT));
-            to->objectCount = from->objectCount;
-            for (uint32_t i = 0; i < (uint32_t)from->objectCount; ++i) {
-                deepcopy_VkDebugUtilsObjectNameInfoEXT(
-                    alloc, rootType, from->pObjects + i,
-                    (VkDebugUtilsObjectNameInfoEXT*)(to->pObjects + i));
-            }
-        }
-    }
-}
-
-void deepcopy_VkDebugUtilsMessengerCreateInfoEXT(Allocator* alloc, VkStructureType rootType,
-                                                 const VkDebugUtilsMessengerCreateInfoEXT* from,
-                                                 VkDebugUtilsMessengerCreateInfoEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-    to->pUserData = nullptr;
-    if (from->pUserData) {
-        to->pUserData = (void*)alloc->dupArray(from->pUserData, sizeof(uint8_t));
-    }
-}
-
-void deepcopy_VkDebugUtilsObjectTagInfoEXT(Allocator* alloc, VkStructureType rootType,
-                                           const VkDebugUtilsObjectTagInfoEXT* from,
-                                           VkDebugUtilsObjectTagInfoEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-    to->pTag = nullptr;
-    if (from->pTag) {
-        to->pTag = (void*)alloc->dupArray(from->pTag, from->tagSize * sizeof(const uint8_t));
-    }
-}
-
 #endif
 #ifdef VK_ANDROID_external_memory_android_hardware_buffer
 #endif
@@ -8017,42 +7844,6 @@ void deepcopy_VkRenderPassFragmentDensityMapCreateInfoEXT(
 #ifdef VK_EXT_subgroup_size_control
 #endif
 #ifdef VK_EXT_tooling_info
-#endif
-#ifdef VK_EXT_validation_features
-void deepcopy_VkValidationFeaturesEXT(Allocator* alloc, VkStructureType rootType,
-                                      const VkValidationFeaturesEXT* from,
-                                      VkValidationFeaturesEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-    to->pEnabledValidationFeatures = nullptr;
-    if (from->pEnabledValidationFeatures) {
-        to->pEnabledValidationFeatures = (VkValidationFeatureEnableEXT*)alloc->dupArray(
-            from->pEnabledValidationFeatures,
-            from->enabledValidationFeatureCount * sizeof(const VkValidationFeatureEnableEXT));
-    }
-    to->pDisabledValidationFeatures = nullptr;
-    if (from->pDisabledValidationFeatures) {
-        to->pDisabledValidationFeatures = (VkValidationFeatureDisableEXT*)alloc->dupArray(
-            from->pDisabledValidationFeatures,
-            from->disabledValidationFeatureCount * sizeof(const VkValidationFeatureDisableEXT));
-    }
-}
-
 #endif
 #ifdef VK_EXT_provoking_vertex
 void deepcopy_VkPhysicalDeviceProvokingVertexFeaturesEXT(
@@ -8792,53 +8583,6 @@ void deepcopy_VkDeviceDeviceMemoryReportCreateInfoEXT(
 }
 
 #endif
-#ifdef VK_EXT_robustness2
-void deepcopy_VkPhysicalDeviceRobustness2FeaturesEXT(
-    Allocator* alloc, VkStructureType rootType, const VkPhysicalDeviceRobustness2FeaturesEXT* from,
-    VkPhysicalDeviceRobustness2FeaturesEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-}
-
-void deepcopy_VkPhysicalDeviceRobustness2PropertiesEXT(
-    Allocator* alloc, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2PropertiesEXT* from,
-    VkPhysicalDeviceRobustness2PropertiesEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-}
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void deepcopy_VkSamplerCustomBorderColorCreateInfoEXT(
     Allocator* alloc, VkStructureType rootType, const VkSamplerCustomBorderColorCreateInfoEXT* from,
@@ -8914,8 +8658,6 @@ void deepcopy_VkPhysicalDeviceCustomBorderColorFeaturesEXT(
 #ifdef VK_EXT_private_data
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void deepcopy_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(
@@ -10256,22 +9998,6 @@ void deepcopy_extension_struct(Allocator* alloc, VkStructureType rootType,
             break;
         }
 #endif
-#ifdef VK_EXT_debug_utils
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT: {
-            deepcopy_VkDebugUtilsObjectNameInfoEXT(
-                alloc, rootType,
-                reinterpret_cast<const VkDebugUtilsObjectNameInfoEXT*>(structExtension),
-                reinterpret_cast<VkDebugUtilsObjectNameInfoEXT*>(structExtension_out));
-            break;
-        }
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT: {
-            deepcopy_VkDebugUtilsMessengerCreateInfoEXT(
-                alloc, rootType,
-                reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(structExtension),
-                reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(structExtension_out));
-            break;
-        }
-#endif
 #ifdef VK_EXT_vertex_attribute_divisor
         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
             deepcopy_VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT(
@@ -10408,14 +10134,6 @@ void deepcopy_extension_struct(Allocator* alloc, VkStructureType rootType,
                     break;
                 }
             }
-            break;
-        }
-#endif
-#ifdef VK_EXT_validation_features
-        case VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT: {
-            deepcopy_VkValidationFeaturesEXT(
-                alloc, rootType, reinterpret_cast<const VkValidationFeaturesEXT*>(structExtension),
-                reinterpret_cast<VkValidationFeaturesEXT*>(structExtension_out));
             break;
         }
 #endif
@@ -10592,22 +10310,6 @@ void deepcopy_extension_struct(Allocator* alloc, VkStructureType rootType,
                 alloc, rootType,
                 reinterpret_cast<const VkDeviceDeviceMemoryReportCreateInfoEXT*>(structExtension),
                 reinterpret_cast<VkDeviceDeviceMemoryReportCreateInfoEXT*>(structExtension_out));
-            break;
-        }
-#endif
-#ifdef VK_EXT_robustness2
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
-            deepcopy_VkPhysicalDeviceRobustness2FeaturesEXT(
-                alloc, rootType,
-                reinterpret_cast<const VkPhysicalDeviceRobustness2FeaturesEXT*>(structExtension),
-                reinterpret_cast<VkPhysicalDeviceRobustness2FeaturesEXT*>(structExtension_out));
-            break;
-        }
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
-            deepcopy_VkPhysicalDeviceRobustness2PropertiesEXT(
-                alloc, rootType,
-                reinterpret_cast<const VkPhysicalDeviceRobustness2PropertiesEXT*>(structExtension),
-                reinterpret_cast<VkPhysicalDeviceRobustness2PropertiesEXT*>(structExtension_out));
             break;
         }
 #endif

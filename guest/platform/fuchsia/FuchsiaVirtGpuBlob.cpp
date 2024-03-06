@@ -18,39 +18,39 @@
 
 #include "FuchsiaVirtGpu.h"
 
-FuchsiaVirtGpuResource::FuchsiaVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle,
-                                               uint32_t resourceHandle, uint64_t size) {}
+FuchsiaVirtGpuBlob::FuchsiaVirtGpuBlob(int64_t deviceHandle, uint32_t blobHandle,
+                                       uint32_t resourceHandle, uint64_t size) {}
 
-FuchsiaVirtGpuResource::~FuchsiaVirtGpuResource(void) {}
+FuchsiaVirtGpuBlob::~FuchsiaVirtGpuBlob(void) {}
 
-uint32_t FuchsiaVirtGpuResource::getBlobHandle() const {
+uint32_t FuchsiaVirtGpuBlob::getBlobHandle() const {
     ALOGE("%s: unimplemented", __func__);
     return 0;
 }
 
-uint32_t FuchsiaVirtGpuResource::getResourceHandle() const {
+uint32_t FuchsiaVirtGpuBlob::getResourceHandle() const {
     ALOGE("%s: unimplemented", __func__);
     return 0;
 }
 
-VirtGpuResourceMappingPtr FuchsiaVirtGpuResource::createMapping(void) {
+VirtGpuBlobMappingPtr FuchsiaVirtGpuBlob::createMapping(void) {
     ALOGE("%s: unimplemented", __func__);
     return nullptr;
 }
 
-int FuchsiaVirtGpuResource::wait() { return -1; }
+int FuchsiaVirtGpuBlob::wait() { return -1; }
 
-int FuchsiaVirtGpuResource::exportBlob(struct VirtGpuExternalHandle& handle) {
+int FuchsiaVirtGpuBlob::exportBlob(struct VirtGpuExternalHandle& handle) {
     ALOGE("%s: unimplemented", __func__);
     return 0;
 }
 
-int FuchsiaVirtGpuResource::transferFromHost(uint32_t offset, uint32_t size) {
+int FuchsiaVirtGpuBlob::transferFromHost(uint32_t offset, uint32_t size) {
     ALOGE("%s: unimplemented", __func__);
     return 0;
 }
 
-int FuchsiaVirtGpuResource::transferToHost(uint32_t offset, uint32_t size) {
+int FuchsiaVirtGpuBlob::transferToHost(uint32_t offset, uint32_t size) {
     ALOGE("%s: unimplemented", __func__);
     return 0;
 }

@@ -1691,30 +1691,9 @@ void deepcopy_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
-void deepcopy_VkDebugUtilsLabelEXT(Allocator* alloc, VkStructureType rootType,
-                                   const VkDebugUtilsLabelEXT* from, VkDebugUtilsLabelEXT* to);
-
-void deepcopy_VkDebugUtilsObjectNameInfoEXT(Allocator* alloc, VkStructureType rootType,
-                                            const VkDebugUtilsObjectNameInfoEXT* from,
-                                            VkDebugUtilsObjectNameInfoEXT* to);
-
-void deepcopy_VkDebugUtilsMessengerCallbackDataEXT(Allocator* alloc, VkStructureType rootType,
-                                                   const VkDebugUtilsMessengerCallbackDataEXT* from,
-                                                   VkDebugUtilsMessengerCallbackDataEXT* to);
-
-void deepcopy_VkDebugUtilsMessengerCreateInfoEXT(Allocator* alloc, VkStructureType rootType,
-                                                 const VkDebugUtilsMessengerCreateInfoEXT* from,
-                                                 VkDebugUtilsMessengerCreateInfoEXT* to);
-
-void deepcopy_VkDebugUtilsObjectTagInfoEXT(Allocator* alloc, VkStructureType rootType,
-                                           const VkDebugUtilsObjectTagInfoEXT* from,
-                                           VkDebugUtilsObjectTagInfoEXT* to);
-
 #endif
 #ifdef VK_ANDROID_external_memory_android_hardware_buffer
 #endif
@@ -1803,12 +1782,6 @@ DEFINE_ALIAS_FUNCTION(deepcopy_VkPipelineShaderStageRequiredSubgroupSizeCreateIn
 #ifdef VK_EXT_tooling_info
 DEFINE_ALIAS_FUNCTION(deepcopy_VkPhysicalDeviceToolProperties,
                       deepcopy_VkPhysicalDeviceToolPropertiesEXT)
-
-#endif
-#ifdef VK_EXT_validation_features
-void deepcopy_VkValidationFeaturesEXT(Allocator* alloc, VkStructureType rootType,
-                                      const VkValidationFeaturesEXT* from,
-                                      VkValidationFeaturesEXT* to);
 
 #endif
 #ifdef VK_EXT_provoking_vertex
@@ -1965,17 +1938,6 @@ void deepcopy_VkDeviceDeviceMemoryReportCreateInfoEXT(
     VkDeviceDeviceMemoryReportCreateInfoEXT* to);
 
 #endif
-#ifdef VK_EXT_robustness2
-void deepcopy_VkPhysicalDeviceRobustness2FeaturesEXT(
-    Allocator* alloc, VkStructureType rootType, const VkPhysicalDeviceRobustness2FeaturesEXT* from,
-    VkPhysicalDeviceRobustness2FeaturesEXT* to);
-
-void deepcopy_VkPhysicalDeviceRobustness2PropertiesEXT(
-    Allocator* alloc, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2PropertiesEXT* from,
-    VkPhysicalDeviceRobustness2PropertiesEXT* to);
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void deepcopy_VkSamplerCustomBorderColorCreateInfoEXT(
     Allocator* alloc, VkStructureType rootType, const VkSamplerCustomBorderColorCreateInfoEXT* from,
@@ -2006,8 +1968,6 @@ DEFINE_ALIAS_FUNCTION(deepcopy_VkPrivateDataSlotCreateInfo, deepcopy_VkPrivateDa
 DEFINE_ALIAS_FUNCTION(deepcopy_VkPhysicalDevicePipelineCreationCacheControlFeatures,
                       deepcopy_VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT)
 
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void deepcopy_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(

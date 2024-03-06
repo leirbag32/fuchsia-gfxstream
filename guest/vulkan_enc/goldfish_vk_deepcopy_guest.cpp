@@ -7445,8 +7445,6 @@ void deepcopy_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -7639,8 +7637,6 @@ void deepcopy_VkRenderPassFragmentDensityMapCreateInfoEXT(
 #ifdef VK_EXT_subgroup_size_control
 #endif
 #ifdef VK_EXT_tooling_info
-#endif
-#ifdef VK_EXT_validation_features
 #endif
 #ifdef VK_EXT_provoking_vertex
 void deepcopy_VkPhysicalDeviceProvokingVertexFeaturesEXT(
@@ -8227,53 +8223,6 @@ void deepcopy_VkDeviceDeviceMemoryReportCreateInfoEXT(
 }
 
 #endif
-#ifdef VK_EXT_robustness2
-void deepcopy_VkPhysicalDeviceRobustness2FeaturesEXT(
-    Allocator* alloc, VkStructureType rootType, const VkPhysicalDeviceRobustness2FeaturesEXT* from,
-    VkPhysicalDeviceRobustness2FeaturesEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-}
-
-void deepcopy_VkPhysicalDeviceRobustness2PropertiesEXT(
-    Allocator* alloc, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2PropertiesEXT* from,
-    VkPhysicalDeviceRobustness2PropertiesEXT* to) {
-    (void)alloc;
-    (void)rootType;
-    *to = *from;
-    if (rootType == VK_STRUCTURE_TYPE_MAX_ENUM) {
-        rootType = from->sType;
-    }
-    const void* from_pNext = from;
-    size_t pNext_size = 0u;
-    while (!pNext_size && from_pNext) {
-        from_pNext = static_cast<const vk_struct_common*>(from_pNext)->pNext;
-        pNext_size = goldfish_vk_extension_struct_size(rootType, from_pNext);
-    }
-    to->pNext = nullptr;
-    if (pNext_size) {
-        to->pNext = (void*)alloc->alloc(pNext_size);
-        deepcopy_extension_struct(alloc, rootType, from_pNext, (void*)(to->pNext));
-    }
-}
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void deepcopy_VkSamplerCustomBorderColorCreateInfoEXT(
     Allocator* alloc, VkStructureType rootType, const VkSamplerCustomBorderColorCreateInfoEXT* from,
@@ -8349,8 +8298,6 @@ void deepcopy_VkPhysicalDeviceCustomBorderColorFeaturesEXT(
 #ifdef VK_EXT_private_data
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void deepcopy_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(
@@ -9934,22 +9881,6 @@ void deepcopy_extension_struct(Allocator* alloc, VkStructureType rootType,
                 alloc, rootType,
                 reinterpret_cast<const VkDeviceDeviceMemoryReportCreateInfoEXT*>(structExtension),
                 reinterpret_cast<VkDeviceDeviceMemoryReportCreateInfoEXT*>(structExtension_out));
-            break;
-        }
-#endif
-#ifdef VK_EXT_robustness2
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
-            deepcopy_VkPhysicalDeviceRobustness2FeaturesEXT(
-                alloc, rootType,
-                reinterpret_cast<const VkPhysicalDeviceRobustness2FeaturesEXT*>(structExtension),
-                reinterpret_cast<VkPhysicalDeviceRobustness2FeaturesEXT*>(structExtension_out));
-            break;
-        }
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
-            deepcopy_VkPhysicalDeviceRobustness2PropertiesEXT(
-                alloc, rootType,
-                reinterpret_cast<const VkPhysicalDeviceRobustness2PropertiesEXT*>(structExtension),
-                reinterpret_cast<VkPhysicalDeviceRobustness2PropertiesEXT*>(structExtension_out));
             break;
         }
 #endif

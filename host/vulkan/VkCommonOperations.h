@@ -26,30 +26,30 @@
 #include "BorrowedImageVk.h"
 #include "CompositorVk.h"
 #include "DebugUtilsHelper.h"
-#include "DeviceOpTracker.h"
 #include "DisplayVk.h"
 #include "FrameworkFormats.h"
 #include "aemu/base/ManagedDescriptor.hpp"
 #include "aemu/base/Optional.h"
 #include "aemu/base/synchronization/Lock.h"
-#include "gfxstream/host/Features.h"
 #include "goldfish_vk_private_defs.h"
 #include "utils/GfxApiLogger.h"
 #include "utils/RenderDoc.h"
 
+namespace gfxstream {
+namespace vk {
+
+struct VulkanDispatch;
+
+// Returns a consistent answer for which memory type index is best for staging
+// memory. This is not the simplest thing in the world because even if a memory
+// type index is host visible, that doesn't mean a VkBuffer is allowed to be
+// associated with it.
+bool getStagingMemoryTypeIndex(VulkanDispatch* vk, VkDevice device,
+                               const VkPhysicalDeviceMemoryProperties* memProps,
+                               uint32_t* typeIndex);
+
 #ifdef _WIN32
 typedef void* HANDLE;
-#endif
-
-#if defined(_WIN32)
-// External sync objects are HANDLE on Windows
-typedef HANDLE VK_EXT_SYNC_HANDLE;
-// corresponds to INVALID_HANDLE_VALUE
-#define VK_EXT_SYNC_HANDLE_INVALID (VK_EXT_SYNC_HANDLE)(uintptr_t)(-1)
-#else
-// External sync objects are fd's on other POSIX systems
-typedef int VK_EXT_SYNC_HANDLE;
-#define VK_EXT_SYNC_HANDLE_INVALID (-1)
 #endif
 
 #if defined(_WIN32)
@@ -71,20 +71,6 @@ typedef int VK_EXT_MEMORY_HANDLE;
 #define VK_EXT_MEMORY_HANDLE_TYPE_BIT VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT
 #endif
 
-namespace gfxstream {
-namespace vk {
-
-struct VulkanDispatch;
-
-// Returns a consistent answer for which memory type index is best for staging
-// memory. This is not the simplest thing in the world because even if a memory
-// type index is host visible, that doesn't mean a VkBuffer is allowed to be
-// associated with it.
-bool getStagingMemoryTypeIndex(VulkanDispatch* vk, VkDevice device,
-                               const VkPhysicalDeviceMemoryProperties* memProps,
-                               uint32_t* typeIndex);
-
-
 VK_EXT_MEMORY_HANDLE dupExternalMemory(VK_EXT_MEMORY_HANDLE);
 
 enum class AstcEmulationMode {
@@ -102,8 +88,6 @@ enum class AstcEmulationMode {
 struct VkEmulation {
     // Whether initialization succeeded.
     bool live = false;
-
-    gfxstream::host::FeatureSet features;
 
     // Whether to use deferred command submission.
     bool useDeferredCommands = false;
@@ -154,8 +138,6 @@ struct VkEmulation {
     bool instanceSupportsMoltenVK = false;
     PFN_vkSetMTLTextureMVK setMTLTextureFunc = nullptr;
     PFN_vkGetMTLTextureMVK getMTLTextureFunc = nullptr;
-#else
-    static const bool instanceSupportsMoltenVK = false;
 #endif
 
     bool debugUtilsAvailableAndRequested = false;
@@ -330,14 +312,10 @@ struct VkEmulation {
         uint32_t currentQueueFamilyIndex = VK_QUEUE_FAMILY_EXTERNAL;
 
         bool glExported = false;
-        bool externalMemoryCompatible = false;
 
         VulkanMode vulkanMode = VulkanMode::Default;
 
         MTLTextureRef mtlTexture = nullptr;
-
-        std::optional<DeviceOpWaitable> latestUse;
-        DeviceOpTrackerPtr latestUseTracker = nullptr;
     };
 
     struct BufferInfo {
@@ -416,20 +394,13 @@ struct VkEmulation {
     // if useVulkanNativeSwapchain is set.
     std::unique_ptr<DisplayVk> displayVk;
 
-    struct RepresentativeColorBufferMemoryTypeInfo {
-        // The host memory type index used for Buffer/ColorBuffer allocations.
-        uint32_t hostMemoryTypeIndex;
-
-        // The guest memory type index that will be returned to guest processes querying
-        // the memory type index of host AHardwareBuffer/ColorBuffer allocations. This may
-        // point to an emulated memory type so that the host can control which memory flags are
-        // exposed to the guest (i.e. hide VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT from the guest).
-        uint32_t guestMemoryTypeIndex;
-    };
-    std::optional<RepresentativeColorBufferMemoryTypeInfo> representativeColorBufferMemoryTypeInfo;
+    // The host memory type index that will be used to create an emulated memory type specifically
+    // for AHardwareBuffers/ColorBuffers so that the host can control which memory flags are
+    // exposed to the guest (i.e. hide VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT from the guest).
+    std::optional<uint32_t> representativeColorBufferMemoryTypeIndex;
 };
 
-VkEmulation* createGlobalVkEmulation(VulkanDispatch* vk, gfxstream::host::FeatureSet features);
+VkEmulation* createGlobalVkEmulation(VulkanDispatch* vk, bool useVulkanNativeSwapchain);
 
 struct VkEmulationFeatures {
     bool glInteropSupported = false;
@@ -467,8 +438,7 @@ bool importExternalMemoryDedicatedImage(VulkanDispatch* vk, VkDevice targetDevic
 
 // ColorBuffer operations
 
-bool getColorBufferShareInfo(uint32_t colorBufferHandle, bool* glExported,
-                             bool* externalMemoryCompatible);
+bool isColorBufferExportedToGl(uint32_t colorBufferHandle, bool* exported);
 
 bool getColorBufferAllocationInfo(uint32_t colorBufferHandle, VkDeviceSize* outSize,
                                   uint32_t* outMemoryTypeIndex, bool* outMemoryIsDedicatedAlloc,
@@ -542,13 +512,6 @@ VkExternalMemoryProperties transformExternalMemoryProperties_fromhost(
     VkExternalMemoryProperties props, VkExternalMemoryHandleTypeFlags wantedGuestHandleType);
 
 void setColorBufferCurrentLayout(uint32_t colorBufferHandle, VkImageLayout);
-
-VkImageLayout getColorBufferCurrentLayout(uint32_t colorBufferHandle);
-
-void setColorBufferLatestUse(uint32_t colorBufferHandle, DeviceOpWaitable waitable,
-                             DeviceOpTrackerPtr tracker);
-
-int waitSyncVkColorBuffer(uint32_t colorBufferHandle);
 
 void releaseColorBufferForGuestUse(uint32_t colorBufferHandle);
 

@@ -1697,8 +1697,6 @@ void reservedmarshal_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -1785,8 +1783,6 @@ DEFINE_ALIAS_FUNCTION(reservedmarshal_VkPipelineShaderStageRequiredSubgroupSizeC
 DEFINE_ALIAS_FUNCTION(reservedmarshal_VkPhysicalDeviceToolProperties,
                       reservedmarshal_VkPhysicalDeviceToolPropertiesEXT)
 
-#endif
-#ifdef VK_EXT_validation_features
 #endif
 #ifdef VK_EXT_provoking_vertex
 void reservedmarshal_VkPhysicalDeviceProvokingVertexFeaturesEXT(
@@ -1909,16 +1905,6 @@ void reservedmarshal_VkDeviceDeviceMemoryReportCreateInfoEXT(
     const VkDeviceDeviceMemoryReportCreateInfoEXT* forMarshaling, uint8_t** ptr);
 
 #endif
-#ifdef VK_EXT_robustness2
-void reservedmarshal_VkPhysicalDeviceRobustness2FeaturesEXT(
-    VulkanStreamGuest* vkStream, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2FeaturesEXT* forMarshaling, uint8_t** ptr);
-
-void reservedmarshal_VkPhysicalDeviceRobustness2PropertiesEXT(
-    VulkanStreamGuest* vkStream, VkStructureType rootType,
-    const VkPhysicalDeviceRobustness2PropertiesEXT* forMarshaling, uint8_t** ptr);
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void reservedmarshal_VkSamplerCustomBorderColorCreateInfoEXT(
     VulkanStreamGuest* vkStream, VkStructureType rootType,
@@ -1948,8 +1934,6 @@ DEFINE_ALIAS_FUNCTION(reservedmarshal_VkPrivateDataSlotCreateInfo,
 DEFINE_ALIAS_FUNCTION(reservedmarshal_VkPhysicalDevicePipelineCreationCacheControlFeatures,
                       reservedmarshal_VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT)
 
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void reservedmarshal_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(

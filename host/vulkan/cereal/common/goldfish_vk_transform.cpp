@@ -7122,149 +7122,9 @@ void transform_fromhost_VkPipelineRasterizationDepthClipStateCreateInfoEXT(
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
-void transform_tohost_VkDebugUtilsLabelEXT(VkDecoderGlobalState* resourceTracker,
-                                           VkDebugUtilsLabelEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_fromhost_VkDebugUtilsLabelEXT(VkDecoderGlobalState* resourceTracker,
-                                             VkDebugUtilsLabelEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_tohost_VkDebugUtilsObjectNameInfoEXT(VkDecoderGlobalState* resourceTracker,
-                                                    VkDebugUtilsObjectNameInfoEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_fromhost_VkDebugUtilsObjectNameInfoEXT(VkDecoderGlobalState* resourceTracker,
-                                                      VkDebugUtilsObjectNameInfoEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_tohost_VkDebugUtilsMessengerCallbackDataEXT(
-    VkDecoderGlobalState* resourceTracker, VkDebugUtilsMessengerCallbackDataEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-    if (toTransform) {
-        if (toTransform->pQueueLabels) {
-            for (uint32_t i = 0; i < (uint32_t)toTransform->queueLabelCount; ++i) {
-                transform_tohost_VkDebugUtilsLabelEXT(
-                    resourceTracker, (VkDebugUtilsLabelEXT*)(toTransform->pQueueLabels + i));
-            }
-        }
-    }
-    if (toTransform) {
-        if (toTransform->pCmdBufLabels) {
-            for (uint32_t i = 0; i < (uint32_t)toTransform->cmdBufLabelCount; ++i) {
-                transform_tohost_VkDebugUtilsLabelEXT(
-                    resourceTracker, (VkDebugUtilsLabelEXT*)(toTransform->pCmdBufLabels + i));
-            }
-        }
-    }
-    if (toTransform) {
-        if (toTransform->pObjects) {
-            for (uint32_t i = 0; i < (uint32_t)toTransform->objectCount; ++i) {
-                transform_tohost_VkDebugUtilsObjectNameInfoEXT(
-                    resourceTracker, (VkDebugUtilsObjectNameInfoEXT*)(toTransform->pObjects + i));
-            }
-        }
-    }
-}
-
-void transform_fromhost_VkDebugUtilsMessengerCallbackDataEXT(
-    VkDecoderGlobalState* resourceTracker, VkDebugUtilsMessengerCallbackDataEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-    if (toTransform) {
-        if (toTransform->pQueueLabels) {
-            for (uint32_t i = 0; i < (uint32_t)toTransform->queueLabelCount; ++i) {
-                transform_fromhost_VkDebugUtilsLabelEXT(
-                    resourceTracker, (VkDebugUtilsLabelEXT*)(toTransform->pQueueLabels + i));
-            }
-        }
-    }
-    if (toTransform) {
-        if (toTransform->pCmdBufLabels) {
-            for (uint32_t i = 0; i < (uint32_t)toTransform->cmdBufLabelCount; ++i) {
-                transform_fromhost_VkDebugUtilsLabelEXT(
-                    resourceTracker, (VkDebugUtilsLabelEXT*)(toTransform->pCmdBufLabels + i));
-            }
-        }
-    }
-    if (toTransform) {
-        if (toTransform->pObjects) {
-            for (uint32_t i = 0; i < (uint32_t)toTransform->objectCount; ++i) {
-                transform_fromhost_VkDebugUtilsObjectNameInfoEXT(
-                    resourceTracker, (VkDebugUtilsObjectNameInfoEXT*)(toTransform->pObjects + i));
-            }
-        }
-    }
-}
-
-void transform_tohost_VkDebugUtilsMessengerCreateInfoEXT(
-    VkDecoderGlobalState* resourceTracker, VkDebugUtilsMessengerCreateInfoEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_fromhost_VkDebugUtilsMessengerCreateInfoEXT(
-    VkDecoderGlobalState* resourceTracker, VkDebugUtilsMessengerCreateInfoEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_tohost_VkDebugUtilsObjectTagInfoEXT(VkDecoderGlobalState* resourceTracker,
-                                                   VkDebugUtilsObjectTagInfoEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_fromhost_VkDebugUtilsObjectTagInfoEXT(VkDecoderGlobalState* resourceTracker,
-                                                     VkDebugUtilsObjectTagInfoEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
 #endif
 #ifdef VK_ANDROID_external_memory_android_hardware_buffer
 #endif
@@ -7453,26 +7313,6 @@ void transform_fromhost_VkRenderPassFragmentDensityMapCreateInfoEXT(
 #ifdef VK_EXT_subgroup_size_control
 #endif
 #ifdef VK_EXT_tooling_info
-#endif
-#ifdef VK_EXT_validation_features
-void transform_tohost_VkValidationFeaturesEXT(VkDecoderGlobalState* resourceTracker,
-                                              VkValidationFeaturesEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_fromhost_VkValidationFeaturesEXT(VkDecoderGlobalState* resourceTracker,
-                                                VkValidationFeaturesEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
 #endif
 #ifdef VK_EXT_provoking_vertex
 void transform_tohost_VkPhysicalDeviceProvokingVertexFeaturesEXT(
@@ -8086,44 +7926,6 @@ void transform_fromhost_VkDeviceDeviceMemoryReportCreateInfoEXT(
 }
 
 #endif
-#ifdef VK_EXT_robustness2
-void transform_tohost_VkPhysicalDeviceRobustness2FeaturesEXT(
-    VkDecoderGlobalState* resourceTracker, VkPhysicalDeviceRobustness2FeaturesEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_fromhost_VkPhysicalDeviceRobustness2FeaturesEXT(
-    VkDecoderGlobalState* resourceTracker, VkPhysicalDeviceRobustness2FeaturesEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_tohost_VkPhysicalDeviceRobustness2PropertiesEXT(
-    VkDecoderGlobalState* resourceTracker, VkPhysicalDeviceRobustness2PropertiesEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_tohost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-void transform_fromhost_VkPhysicalDeviceRobustness2PropertiesEXT(
-    VkDecoderGlobalState* resourceTracker, VkPhysicalDeviceRobustness2PropertiesEXT* toTransform) {
-    (void)resourceTracker;
-    (void)toTransform;
-    if (toTransform->pNext) {
-        transform_fromhost_extension_struct(resourceTracker, (void*)(toTransform->pNext));
-    }
-}
-
-#endif
 #ifdef VK_EXT_custom_border_color
 void transform_tohost_VkSamplerCustomBorderColorCreateInfoEXT(
     VkDecoderGlobalState* resourceTracker, VkSamplerCustomBorderColorCreateInfoEXT* toTransform) {
@@ -8191,8 +7993,6 @@ void transform_fromhost_VkPhysicalDeviceCustomBorderColorFeaturesEXT(
 #ifdef VK_EXT_private_data
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 void transform_tohost_VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT(
@@ -9297,20 +9097,6 @@ void transform_tohost_extension_struct(VkDecoderGlobalState* resourceTracker,
             break;
         }
 #endif
-#ifdef VK_EXT_debug_utils
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT: {
-            transform_tohost_VkDebugUtilsObjectNameInfoEXT(
-                resourceTracker,
-                reinterpret_cast<VkDebugUtilsObjectNameInfoEXT*>(structExtension_out));
-            break;
-        }
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT: {
-            transform_tohost_VkDebugUtilsMessengerCreateInfoEXT(
-                resourceTracker,
-                reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(structExtension_out));
-            break;
-        }
-#endif
 #ifdef VK_EXT_vertex_attribute_divisor
         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
             transform_tohost_VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT(
@@ -9350,13 +9136,6 @@ void transform_tohost_extension_struct(VkDecoderGlobalState* resourceTracker,
             transform_tohost_VkRenderPassFragmentDensityMapCreateInfoEXT(
                 resourceTracker, reinterpret_cast<VkRenderPassFragmentDensityMapCreateInfoEXT*>(
                                      structExtension_out));
-            break;
-        }
-#endif
-#ifdef VK_EXT_validation_features
-        case VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT: {
-            transform_tohost_VkValidationFeaturesEXT(
-                resourceTracker, reinterpret_cast<VkValidationFeaturesEXT*>(structExtension_out));
             break;
         }
 #endif
@@ -9495,20 +9274,6 @@ void transform_tohost_extension_struct(VkDecoderGlobalState* resourceTracker,
             transform_tohost_VkDeviceDeviceMemoryReportCreateInfoEXT(
                 resourceTracker,
                 reinterpret_cast<VkDeviceDeviceMemoryReportCreateInfoEXT*>(structExtension_out));
-            break;
-        }
-#endif
-#ifdef VK_EXT_robustness2
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
-            transform_tohost_VkPhysicalDeviceRobustness2FeaturesEXT(
-                resourceTracker,
-                reinterpret_cast<VkPhysicalDeviceRobustness2FeaturesEXT*>(structExtension_out));
-            break;
-        }
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
-            transform_tohost_VkPhysicalDeviceRobustness2PropertiesEXT(
-                resourceTracker,
-                reinterpret_cast<VkPhysicalDeviceRobustness2PropertiesEXT*>(structExtension_out));
             break;
         }
 #endif
@@ -10457,20 +10222,6 @@ void transform_fromhost_extension_struct(VkDecoderGlobalState* resourceTracker,
             break;
         }
 #endif
-#ifdef VK_EXT_debug_utils
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT: {
-            transform_fromhost_VkDebugUtilsObjectNameInfoEXT(
-                resourceTracker,
-                reinterpret_cast<VkDebugUtilsObjectNameInfoEXT*>(structExtension_out));
-            break;
-        }
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT: {
-            transform_fromhost_VkDebugUtilsMessengerCreateInfoEXT(
-                resourceTracker,
-                reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(structExtension_out));
-            break;
-        }
-#endif
 #ifdef VK_EXT_vertex_attribute_divisor
         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
             transform_fromhost_VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT(
@@ -10510,13 +10261,6 @@ void transform_fromhost_extension_struct(VkDecoderGlobalState* resourceTracker,
             transform_fromhost_VkRenderPassFragmentDensityMapCreateInfoEXT(
                 resourceTracker, reinterpret_cast<VkRenderPassFragmentDensityMapCreateInfoEXT*>(
                                      structExtension_out));
-            break;
-        }
-#endif
-#ifdef VK_EXT_validation_features
-        case VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT: {
-            transform_fromhost_VkValidationFeaturesEXT(
-                resourceTracker, reinterpret_cast<VkValidationFeaturesEXT*>(structExtension_out));
             break;
         }
 #endif
@@ -10655,20 +10399,6 @@ void transform_fromhost_extension_struct(VkDecoderGlobalState* resourceTracker,
             transform_fromhost_VkDeviceDeviceMemoryReportCreateInfoEXT(
                 resourceTracker,
                 reinterpret_cast<VkDeviceDeviceMemoryReportCreateInfoEXT*>(structExtension_out));
-            break;
-        }
-#endif
-#ifdef VK_EXT_robustness2
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
-            transform_fromhost_VkPhysicalDeviceRobustness2FeaturesEXT(
-                resourceTracker,
-                reinterpret_cast<VkPhysicalDeviceRobustness2FeaturesEXT*>(structExtension_out));
-            break;
-        }
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
-            transform_fromhost_VkPhysicalDeviceRobustness2PropertiesEXT(
-                resourceTracker,
-                reinterpret_cast<VkPhysicalDeviceRobustness2PropertiesEXT*>(structExtension_out));
             break;
         }
 #endif

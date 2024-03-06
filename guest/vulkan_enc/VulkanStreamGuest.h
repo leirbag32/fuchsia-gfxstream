@@ -14,17 +14,18 @@
 #pragma once
 
 #include <inttypes.h>
+#include <log/log.h>
 
 #include <memory>
 #include <vector>
 
+#include "gfxstream/guest/IOStream.h"
 #include "ResourceTracker.h"
 #include "VulkanHandleMapping.h"
 #include "aemu/base/BumpPool.h"
 #include "aemu/base/Tracing.h"
 #include "aemu/base/files/Stream.h"
 #include "aemu/base/files/StreamSerializing.h"
-#include "gfxstream/guest/IOStream.h"
 #include "goldfish_vk_private_defs.h"
 
 namespace gfxstream {

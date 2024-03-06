@@ -164,8 +164,6 @@ size_t goldfish_vk_extension_struct_size_with_stream_features(uint32_t streamFea
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -192,8 +190,6 @@ size_t goldfish_vk_extension_struct_size_with_stream_features(uint32_t streamFea
 #endif
 #ifdef VK_EXT_tooling_info
 #endif
-#ifdef VK_EXT_validation_features
-#endif
 #ifdef VK_EXT_provoking_vertex
 #endif
 #ifdef VK_EXT_line_rasterization
@@ -212,15 +208,11 @@ size_t goldfish_vk_extension_struct_size_with_stream_features(uint32_t streamFea
 #endif
 #ifdef VK_EXT_device_memory_report
 #endif
-#ifdef VK_EXT_robustness2
-#endif
 #ifdef VK_EXT_custom_border_color
 #endif
 #ifdef VK_EXT_private_data
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 #endif

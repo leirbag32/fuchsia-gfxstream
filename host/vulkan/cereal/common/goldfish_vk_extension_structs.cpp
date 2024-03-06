@@ -144,8 +144,6 @@ namespace vk {
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -172,8 +170,6 @@ namespace vk {
 #endif
 #ifdef VK_EXT_tooling_info
 #endif
-#ifdef VK_EXT_validation_features
-#endif
 #ifdef VK_EXT_provoking_vertex
 #endif
 #ifdef VK_EXT_line_rasterization
@@ -192,15 +188,11 @@ namespace vk {
 #endif
 #ifdef VK_EXT_device_memory_report
 #endif
-#ifdef VK_EXT_robustness2
-#endif
 #ifdef VK_EXT_custom_border_color
 #endif
 #ifdef VK_EXT_private_data
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 #endif
@@ -645,14 +637,6 @@ size_t goldfish_vk_extension_struct_size(VkStructureType rootType, const void* s
             return sizeof(VkPipelineRasterizationDepthClipStateCreateInfoEXT);
         }
 #endif
-#ifdef VK_EXT_debug_utils
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT: {
-            return sizeof(VkDebugUtilsObjectNameInfoEXT);
-        }
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT: {
-            return sizeof(VkDebugUtilsMessengerCreateInfoEXT);
-        }
-#endif
 #ifdef VK_EXT_vertex_attribute_divisor
         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
             return sizeof(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
@@ -720,11 +704,6 @@ size_t goldfish_vk_extension_struct_size(VkStructureType rootType, const void* s
                     break;
                 }
             }
-        }
-#endif
-#ifdef VK_EXT_validation_features
-        case VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT: {
-            return sizeof(VkValidationFeaturesEXT);
         }
 #endif
 #ifdef VK_EXT_provoking_vertex
@@ -801,14 +780,6 @@ size_t goldfish_vk_extension_struct_size(VkStructureType rootType, const void* s
         }
         case VK_STRUCTURE_TYPE_DEVICE_DEVICE_MEMORY_REPORT_CREATE_INFO_EXT: {
             return sizeof(VkDeviceDeviceMemoryReportCreateInfoEXT);
-        }
-#endif
-#ifdef VK_EXT_robustness2
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
-            return sizeof(VkPhysicalDeviceRobustness2FeaturesEXT);
-        }
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
-            return sizeof(VkPhysicalDeviceRobustness2PropertiesEXT);
         }
 #endif
 #ifdef VK_EXT_custom_border_color
@@ -1310,14 +1281,6 @@ size_t goldfish_vk_extension_struct_size_with_stream_features(uint32_t streamFea
             return sizeof(VkPipelineRasterizationDepthClipStateCreateInfoEXT);
         }
 #endif
-#ifdef VK_EXT_debug_utils
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT: {
-            return sizeof(VkDebugUtilsObjectNameInfoEXT);
-        }
-        case VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT: {
-            return sizeof(VkDebugUtilsMessengerCreateInfoEXT);
-        }
-#endif
 #ifdef VK_EXT_vertex_attribute_divisor
         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
             return sizeof(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
@@ -1385,11 +1348,6 @@ size_t goldfish_vk_extension_struct_size_with_stream_features(uint32_t streamFea
                     break;
                 }
             }
-        }
-#endif
-#ifdef VK_EXT_validation_features
-        case VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT: {
-            return sizeof(VkValidationFeaturesEXT);
         }
 #endif
 #ifdef VK_EXT_provoking_vertex
@@ -1466,14 +1424,6 @@ size_t goldfish_vk_extension_struct_size_with_stream_features(uint32_t streamFea
         }
         case VK_STRUCTURE_TYPE_DEVICE_DEVICE_MEMORY_REPORT_CREATE_INFO_EXT: {
             return sizeof(VkDeviceDeviceMemoryReportCreateInfoEXT);
-        }
-#endif
-#ifdef VK_EXT_robustness2
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT: {
-            return sizeof(VkPhysicalDeviceRobustness2FeaturesEXT);
-        }
-        case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_PROPERTIES_EXT: {
-            return sizeof(VkPhysicalDeviceRobustness2PropertiesEXT);
         }
 #endif
 #ifdef VK_EXT_custom_border_color

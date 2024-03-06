@@ -14,11 +14,8 @@
 
 #include <log/log.h>
 
-#include <atomic>
-#include <thread>
-
-#include "GfxstreamEnd2EndTestUtils.h"
 #include "GfxstreamEnd2EndTests.h"
+#include "drm_fourcc.h"
 
 namespace gfxstream {
 namespace tests {
@@ -29,7 +26,6 @@ using testing::Eq;
 using testing::Ge;
 using testing::IsEmpty;
 using testing::IsNull;
-using testing::Ne;
 using testing::Not;
 using testing::NotNull;
 
@@ -38,88 +34,7 @@ constexpr uint64_t AsVkTimeout(DurationType duration) {
     return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count());
 }
 
-class GfxstreamEnd2EndVkTest : public GfxstreamEnd2EndTest {
-   protected:
-    // Gfxstream uses a vkQueueSubmit() to signal the VkFence and VkSemaphore used
-    // in vkAcquireImageANDROID() calls. The guest is not aware of this and may try
-    // to vkDestroyFence() and vkDestroySemaphore() (because the VkImage, VkFence,
-    // and VkSemaphore may have been unused from the guest point of view) while the
-    // host's command buffer is running. Gfxstream needs to ensure that it performs
-    // the necessary tracking to not delete the VkFence and VkSemaphore while they
-    // are in use on the host.
-    void DoAcquireImageAndroidWithSync(bool withFence, bool withSemaphore) {
-        auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
-            VK_ASSERT(SetUpTypicalVkTestEnvironment());
-
-        const uint32_t width = 32;
-        const uint32_t height = 32;
-        auto ahb = GL_ASSERT(ScopedAHardwareBuffer::Allocate(*mGralloc, width, height,
-                                                             GFXSTREAM_AHB_FORMAT_R8G8B8A8_UNORM));
-
-        const VkNativeBufferANDROID imageNativeBufferInfo = {
-            .sType = VK_STRUCTURE_TYPE_NATIVE_BUFFER_ANDROID,
-            .handle = mGralloc->getNativeHandle(ahb),
-        };
-
-        auto vkAcquireImageANDROID =
-            PFN_vkAcquireImageANDROID(device->getProcAddr("vkAcquireImageANDROID"));
-        ASSERT_THAT(vkAcquireImageANDROID, NotNull());
-
-        const vkhpp::ImageCreateInfo imageCreateInfo = {
-            .pNext = &imageNativeBufferInfo,
-            .imageType = vkhpp::ImageType::e2D,
-            .extent.width = width,
-            .extent.height = height,
-            .extent.depth = 1,
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .format = vkhpp::Format::eR8G8B8A8Unorm,
-            .tiling = vkhpp::ImageTiling::eOptimal,
-            .initialLayout = vkhpp::ImageLayout::eUndefined,
-            .usage = vkhpp::ImageUsageFlagBits::eSampled | vkhpp::ImageUsageFlagBits::eTransferDst |
-                     vkhpp::ImageUsageFlagBits::eTransferSrc,
-            .sharingMode = vkhpp::SharingMode::eExclusive,
-            .samples = vkhpp::SampleCountFlagBits::e1,
-        };
-        auto image = device->createImageUnique(imageCreateInfo).value;
-
-        vkhpp::MemoryRequirements imageMemoryRequirements{};
-        device->getImageMemoryRequirements(*image, &imageMemoryRequirements);
-
-        const uint32_t imageMemoryIndex = utils::getMemoryType(
-            physicalDevice, imageMemoryRequirements, vkhpp::MemoryPropertyFlagBits::eDeviceLocal);
-        ASSERT_THAT(imageMemoryIndex, Not(Eq(-1)));
-
-        const vkhpp::MemoryAllocateInfo imageMemoryAllocateInfo = {
-            .allocationSize = imageMemoryRequirements.size,
-            .memoryTypeIndex = imageMemoryIndex,
-        };
-
-        auto imageMemory = device->allocateMemoryUnique(imageMemoryAllocateInfo).value;
-        ASSERT_THAT(imageMemory, IsValidHandle());
-        ASSERT_THAT(device->bindImageMemory(*image, *imageMemory, 0), IsVkSuccess());
-
-        vkhpp::UniqueFence fence;
-        if (withFence) {
-            fence = device->createFenceUnique(vkhpp::FenceCreateInfo()).value;
-        }
-
-        vkhpp::UniqueSemaphore semaphore;
-        if (withSemaphore) {
-            semaphore = device->createSemaphoreUnique(vkhpp::SemaphoreCreateInfo()).value;
-        }
-
-        auto result = vkAcquireImageANDROID(*device, *image, -1, *semaphore, *fence);
-        ASSERT_THAT(result, Eq(VK_SUCCESS));
-
-        if (withFence) {
-            fence.reset();
-        }
-        if (withSemaphore) {
-            semaphore.reset();
-        }
-    }
-};
+class GfxstreamEnd2EndVkTest : public GfxstreamEnd2EndTest {};
 
 TEST_P(GfxstreamEnd2EndVkTest, Basic) {
     auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
@@ -132,8 +47,8 @@ TEST_P(GfxstreamEnd2EndVkTest, ImportAHB) {
 
     const uint32_t width = 32;
     const uint32_t height = 32;
-    auto ahb = GL_ASSERT(ScopedAHardwareBuffer::Allocate(*mGralloc, width, height,
-                                                         GFXSTREAM_AHB_FORMAT_R8G8B8A8_UNORM));
+    AHardwareBuffer* ahb = nullptr;
+    ASSERT_THAT(mGralloc->allocate(width, height, DRM_FORMAT_ABGR8888, -1, &ahb), Eq(0));
 
     const VkNativeBufferANDROID imageNativeBufferInfo = {
         .sType = VK_STRUCTURE_TYPE_NATIVE_BUFFER_ANDROID,
@@ -166,8 +81,8 @@ TEST_P(GfxstreamEnd2EndVkTest, ImportAHB) {
     vkhpp::MemoryRequirements imageMemoryRequirements{};
     device->getImageMemoryRequirements(*image, &imageMemoryRequirements);
 
-    const uint32_t imageMemoryIndex = utils::getMemoryType(
-        physicalDevice, imageMemoryRequirements, vkhpp::MemoryPropertyFlagBits::eDeviceLocal);
+    const uint32_t imageMemoryIndex =
+        GetMemoryType(physicalDevice, imageMemoryRequirements, vkhpp::MemoryPropertyFlagBits::eDeviceLocal);
     ASSERT_THAT(imageMemoryIndex, Not(Eq(-1)));
 
     const vkhpp::MemoryAllocateInfo imageMemoryAllocateInfo = {
@@ -191,9 +106,11 @@ TEST_P(GfxstreamEnd2EndVkTest, ImportAHB) {
     vkhpp::MemoryRequirements stagingBufferMemoryRequirements{};
     device->getBufferMemoryRequirements(*stagingBuffer, &stagingBufferMemoryRequirements);
 
-    const auto stagingBufferMemoryType = utils::getMemoryType(
-        physicalDevice, stagingBufferMemoryRequirements,
-        vkhpp::MemoryPropertyFlagBits::eHostVisible | vkhpp::MemoryPropertyFlagBits::eHostCoherent);
+    const auto stagingBufferMemoryType =
+         GetMemoryType(physicalDevice,
+                       stagingBufferMemoryRequirements,
+                       vkhpp::MemoryPropertyFlagBits::eHostVisible |
+                       vkhpp::MemoryPropertyFlagBits::eHostCoherent);
 
     const vkhpp::MemoryAllocateInfo stagingBufferMemoryAllocateInfo = {
         .allocationSize = stagingBufferMemoryRequirements.size,
@@ -248,6 +165,8 @@ TEST_P(GfxstreamEnd2EndVkTest, ImportAHB) {
     ASSERT_THAT(fence, Not(Eq(-1)));
 
     ASSERT_THAT(mSync->wait(fence, 3000), Eq(0));
+
+    mGralloc->release(ahb);
 }
 
 TEST_P(GfxstreamEnd2EndVkTest, DeferredImportAHB) {
@@ -256,8 +175,8 @@ TEST_P(GfxstreamEnd2EndVkTest, DeferredImportAHB) {
 
     const uint32_t width = 32;
     const uint32_t height = 32;
-    auto ahb = GL_ASSERT(ScopedAHardwareBuffer::Allocate(*mGralloc, width, height,
-                                                         GFXSTREAM_AHB_FORMAT_R8G8B8A8_UNORM));
+    AHardwareBuffer* ahb = nullptr;
+    ASSERT_THAT(mGralloc->allocate(width, height, DRM_FORMAT_ABGR8888, -1, &ahb), Eq(0));
 
     auto vkQueueSignalReleaseImageANDROID = PFN_vkQueueSignalReleaseImageANDROID(
         device->getProcAddr("vkQueueSignalReleaseImageANDROID"));
@@ -304,85 +223,8 @@ TEST_P(GfxstreamEnd2EndVkTest, DeferredImportAHB) {
     ASSERT_THAT(fence, Not(Eq(-1)));
 
     ASSERT_THAT(mSync->wait(fence, 3000), Eq(0));
-}
 
-TEST_P(GfxstreamEnd2EndVkTest, BlobAHBIsNotMapable) {
-    if (GetParam().with_gl) {
-        GTEST_SKIP()
-            << "Skipping test, data buffers are currently only supported in Vulkan only mode.";
-    }
-    if (GetParam().with_features.count("VulkanUseDedicatedAhbMemoryType") == 0) {
-        GTEST_SKIP()
-            << "Skipping test, AHB test only makes sense with VulkanUseDedicatedAhbMemoryType.";
-    }
-
-    auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
-        VK_ASSERT(SetUpTypicalVkTestEnvironment());
-
-    const uint32_t width = 32;
-    const uint32_t height = 1;
-    auto ahb = GL_ASSERT(
-        ScopedAHardwareBuffer::Allocate(*mGralloc, width, height, GFXSTREAM_AHB_FORMAT_BLOB));
-
-    const vkhpp::ExternalMemoryBufferCreateInfo externalMemoryBufferCreateInfo = {
-        .handleTypes = vkhpp::ExternalMemoryHandleTypeFlagBits::eAndroidHardwareBufferANDROID,
-    };
-    const vkhpp::BufferCreateInfo bufferCreateInfo = {
-        .pNext = &externalMemoryBufferCreateInfo,
-        .size = width,
-        .usage = vkhpp::BufferUsageFlagBits::eTransferDst |
-                 vkhpp::BufferUsageFlagBits::eTransferSrc |
-                 vkhpp::BufferUsageFlagBits::eVertexBuffer,
-        .sharingMode = vkhpp::SharingMode::eExclusive,
-    };
-    auto buffer = device->createBufferUnique(bufferCreateInfo).value;
-    ASSERT_THAT(buffer, IsValidHandle());
-
-    auto vkGetAndroidHardwareBufferPropertiesANDROID =
-        reinterpret_cast<PFN_vkGetAndroidHardwareBufferPropertiesANDROID>(
-            device->getProcAddr("vkGetAndroidHardwareBufferPropertiesANDROID"));
-    ASSERT_THAT(vkGetAndroidHardwareBufferPropertiesANDROID, NotNull());
-
-    VkAndroidHardwareBufferPropertiesANDROID bufferProperties = {
-        .sType = VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID,
-        .pNext = nullptr,
-    };
-    ASSERT_THAT(vkGetAndroidHardwareBufferPropertiesANDROID(*device, ahb, &bufferProperties),
-                Eq(VK_SUCCESS));
-
-    const vkhpp::MemoryRequirements bufferMemoryRequirements{
-        .size = bufferProperties.allocationSize,
-        .alignment = 0,
-        .memoryTypeBits = bufferProperties.memoryTypeBits,
-    };
-
-    const auto memoryProperties = physicalDevice.getMemoryProperties();
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
-        if (!(bufferMemoryRequirements.memoryTypeBits & (1 << i))) {
-            continue;
-        }
-
-        const auto memoryPropertyFlags = memoryProperties.memoryTypes[i].propertyFlags;
-        EXPECT_THAT(memoryPropertyFlags & vkhpp::MemoryPropertyFlagBits::eHostVisible,
-                    Ne(vkhpp::MemoryPropertyFlagBits::eHostVisible));
-    }
-
-    const auto bufferMemoryType = utils::getMemoryType(physicalDevice, bufferMemoryRequirements,
-                                                       vkhpp::MemoryPropertyFlagBits::eDeviceLocal);
-    ASSERT_THAT(bufferMemoryType, Ne(-1));
-
-    const vkhpp::ImportAndroidHardwareBufferInfoANDROID importHardwareBufferInfo = {
-        .buffer = ahb,
-    };
-    const vkhpp::MemoryAllocateInfo bufferMemoryAllocateInfo = {
-        .pNext = &importHardwareBufferInfo,
-        .allocationSize = bufferMemoryRequirements.size,
-        .memoryTypeIndex = bufferMemoryType,
-    };
-    auto bufferMemory = device->allocateMemoryUnique(bufferMemoryAllocateInfo).value;
-    ASSERT_THAT(bufferMemory, IsValidHandle());
-
-    ASSERT_THAT(device->bindBufferMemory(*buffer, *bufferMemory, 0), IsVkSuccess());
+    mGralloc->release(ahb);
 }
 
 TEST_P(GfxstreamEnd2EndVkTest, HostMemory) {
@@ -604,438 +446,30 @@ TEST_P(GfxstreamEnd2EndVkTest, DISABLED_DescriptorSetAllocFreeDestroy) {
     EXPECT_THAT(device->freeDescriptorSets(*bundle.descriptorPool, kNumSets, descriptorSetHandles.data()), IsVkSuccess());
 }
 
-TEST_P(GfxstreamEnd2EndVkTest, MultiThreadedShutdown) {
-    constexpr const int kNumIterations = 20;
-    for (int i = 0; i < kNumIterations; i++) {
-        auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
-                VK_ASSERT(SetUpTypicalVkTestEnvironment());
-
-        const vkhpp::BufferCreateInfo bufferCreateInfo = {
-            .size = 1024,
-            .usage = vkhpp::BufferUsageFlagBits::eTransferSrc,
-        };
-
-        // TODO: switch to std::barrier with arrive_and_wait().
-        std::atomic_int threadsReady{0};
-        std::vector<std::thread> threads;
-
-        constexpr const int kNumThreads = 5;
-        for (int t = 0; t < kNumThreads; t++) {
-            threads.emplace_back([&, this](){
-                // Perform some work to ensure host RenderThread started.
-                auto buffer1 = device->createBufferUnique(bufferCreateInfo).value;
-
-                ++threadsReady;
-                while (threadsReady.load() != kNumThreads) {}
-
-                // Sleep a little which is hopefully enough time to potentially get
-                // the corresponding host ASG RenderThreads to go sleep waiting for
-                // a WAKEUP via a GFXSTREAM_CONTEXT_PING.
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-                auto buffer2 = device->createBufferUnique(bufferCreateInfo).value;
-
-                // 2 vkDestroyBuffer() calls happen here with the destruction of `buffer1`
-                // and `buffer2`. vkDestroy*() calls are async (return `void`) and the
-                // guest thread continues execution without waiting for the command to
-                // complete on the host.
-                //
-                // The guest ASG and corresponding virtio gpu resource will also be
-                // destructed here as a part of the thread_local HostConnection being
-                // destructed.
-                //
-                // Note: Vulkan commands are given a sequence number in order to ensure that
-                // commands from multi-threaded guest Vulkan apps are executed in order on the
-                // host. Gfxstream's host Vulkan decoders will spin loop waiting for their turn to
-                // process their next command.
-                //
-                // With all of the above, a deadlock would previouly occur with the following
-                // sequence:
-                //
-                // T1: Host-RenderThread-1: <sleeping waiting for wakeup>
-                //
-                // T2: Host-RenderThread-2: <sleeping waiting for wakeup>
-                //
-                // T3: Guest-Thread-1: vkDestroyBuffer() called,
-                //                     VkEncoder grabs sequence-number-10,
-                //                     writes sequence-number-10 into ASG-1 via resource-1
-                //
-                // T4: Guest-Thread-2: vkDestroyBuffer() called,
-                //                     VkEncoder grabs sequence-number-11,
-                //                     writes into ASG-2 via resource-2
-                //
-                // T5: Guest-Thread-2: ASG-2 sends a VIRTIO_GPU_CMD_SUBMIT_3D with
-                //                     GFXSTREAM_CONTEXT_PING on ASG-resource-2
-                //
-                // T6: Guest-Thread-2: guest thread finishes,
-                //                     ASG-2 destructor destroys the virtio-gpu resource used,
-                //                     destruction sends VIRTIO_GPU_CMD_RESOURCE_UNREF on
-                //                     resource-2
-                //
-                // T7: Guest-Thread-1: ASG-1 sends VIRTIO_GPU_CMD_SUBMIT_3D with
-                //                     GFXSTREAM_CONTEXT_PING on ASG-resource-1
-                //
-                // T8: Host-Virtio-Gpu-Thread: performs VIRTIO_GPU_CMD_SUBMIT_3D from T5,
-                //                             pings ASG-2 which wakes up Host-RenderThread-2
-                //
-                // T9: Host-RenderThread-2: woken from T8,
-                //                          reads sequence-number-11 from ASG-2,
-                //                          spin looping waiting for sequence-number-10 to execute
-                //
-                // T10: Host-Virtio-Gpu-Thread: performs VIRTIO_GPU_CMD_RESOURCE_UNREF for
-                //                              resource-2 from T6,
-                //                              resource-2 is used by ASG-2 / Host-RenderThread-2
-                //                              waits for Host-RenderThread-2 to finish
-                //
-                // DEADLOCKED HERE:
-                //
-                //   *  Host-Virtio-GpuThread is waiting for Host-RenderThread-2 to finish before
-                //      it can finish destroying resource-2
-                //
-                //   *  Host-RenderThread-2 is waiting for Host-RenderThread-1 to execute
-                //      sequence-number-10
-                //
-                //   *  Host-RenderThread-1 is asleep waiting for a GFXSTREAM_CONTEXT_PING
-                //      from Host-Virtio-GpuThread
-            });
-        }
-
-        for (auto& thread : threads) {
-            thread.join();
-        }
-    }
-}
-
-TEST_P(GfxstreamEnd2EndVkTest, AcquireImageAndroidWithFence) {
-    DoAcquireImageAndroidWithSync(/*withFence=*/true, /*withSemaphore=*/false);
-}
-
-TEST_P(GfxstreamEnd2EndVkTest, AcquireImageAndroidWithSemaphore) {
-    DoAcquireImageAndroidWithSync(/*withFence=*/false, /*withSemaphore=*/true);
-}
-
-TEST_P(GfxstreamEnd2EndVkTest, AcquireImageAndroidWithFenceAndSemaphore) {
-    DoAcquireImageAndroidWithSync(/*withFence=*/true, /*withSemaphore=*/true);
-}
-
-VKAPI_ATTR void VKAPI_CALL MemoryReportCallback(const VkDeviceMemoryReportCallbackDataEXT*, void*) {
-    // Unused
-}
-
-TEST_P(GfxstreamEnd2EndVkTest, DeviceMemoryReport) {
-    int userdata = 1;
-    vkhpp::DeviceDeviceMemoryReportCreateInfoEXT deviceDeviceMemoryReportInfo = {
-        .pfnUserCallback = &MemoryReportCallback,
-        .pUserData = &userdata,
-    };
-
-    auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
-        VK_ASSERT(SetUpTypicalVkTestEnvironment({
-            .deviceExtensions = {{
-                VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME,
-            }},
-            .deviceCreateInfoPNext = &deviceDeviceMemoryReportInfo,
-        }));
-
-    const vkhpp::MemoryAllocateInfo memoryAllocateInfo = {
-        .allocationSize = 1024,
-        .memoryTypeIndex = 0,
-    };
-    auto memory = device->allocateMemoryUnique(memoryAllocateInfo).value;
-    ASSERT_THAT(memory, IsValidHandle());
-}
-
-TEST_P(GfxstreamEnd2EndVkTest, DescriptorUpdateTemplateWithWrapping) {
-    auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
-        VK_ASSERT(SetUpTypicalVkTestEnvironment());
-
-    const vkhpp::BufferCreateInfo bufferCreateInfo = {
-        .size = 1024,
-        .usage = vkhpp::BufferUsageFlagBits::eUniformBuffer,
-    };
-    auto buffer = VK_ASSERT_RV(device->createBufferUnique(bufferCreateInfo));
-
-    const std::vector<VkDescriptorBufferInfo> descriptorInfo = {
-        VkDescriptorBufferInfo{
-            .buffer = *buffer,
-            .offset = 0,
-            .range = 1024,
-        },
-        VkDescriptorBufferInfo{
-            .buffer = *buffer,
-            .offset = 0,
-            .range = 1024,
-        },
-        VkDescriptorBufferInfo{
-            .buffer = *buffer,
-            .offset = 0,
-            .range = 1024,
-        },
-        VkDescriptorBufferInfo{
-            .buffer = *buffer,
-            .offset = 0,
-            .range = 1024,
-        },
-    };
-
-    const std::vector<vkhpp::DescriptorPoolSize> descriptorPoolSizes = {
-        {
-            .type = vkhpp::DescriptorType::eUniformBuffer,
-            .descriptorCount = 4,
-        },
-    };
-    const vkhpp::DescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-        .flags = vkhpp::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        .maxSets = 1,
-        .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size()),
-        .pPoolSizes = descriptorPoolSizes.data(),
-    };
-    auto descriptorPool =
-        VK_ASSERT_RV(device->createDescriptorPoolUnique(descriptorPoolCreateInfo));
-
-    const std::vector<vkhpp::DescriptorSetLayoutBinding> descriptorSetBindings = {
-        {
-            .binding = 0,
-            .descriptorType = vkhpp::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vkhpp::ShaderStageFlagBits::eVertex,
-        },
-        {
-            .binding = 1,
-            .descriptorType = vkhpp::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vkhpp::ShaderStageFlagBits::eVertex,
-        },
-        {
-            .binding = 2,
-            .descriptorType = vkhpp::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vkhpp::ShaderStageFlagBits::eVertex,
-        },
-        {
-            .binding = 3,
-            .descriptorType = vkhpp::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vkhpp::ShaderStageFlagBits::eVertex,
-        },
-    };
-    const vkhpp::DescriptorSetLayoutCreateInfo descriptorSetLayoutInfo = {
-        .bindingCount = static_cast<uint32_t>(descriptorSetBindings.size()),
-        .pBindings = descriptorSetBindings.data(),
-    };
-    auto descriptorSetLayout =
-        VK_ASSERT_RV(device->createDescriptorSetLayoutUnique(descriptorSetLayoutInfo));
-
-    const std::vector<vkhpp::DescriptorSetLayout> descriptorSetLayouts = {*descriptorSetLayout};
-    const vkhpp::DescriptorSetAllocateInfo descriptorSetAllocateInfo = {
-        .descriptorPool = *descriptorPool,
-        .descriptorSetCount = static_cast<uint32_t>(descriptorSetLayouts.size()),
-        .pSetLayouts = descriptorSetLayouts.data(),
-    };
-    auto descriptorSets =
-        VK_ASSERT_RV(device->allocateDescriptorSetsUnique(descriptorSetAllocateInfo));
-    auto descriptorSet = std::move(descriptorSets[0]);
-
-    const vkhpp::PipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-        .setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size()),
-        .pSetLayouts = descriptorSetLayouts.data(),
-    };
-    auto pipelineLayout =
-        VK_ASSERT_RV(device->createPipelineLayoutUnique(pipelineLayoutCreateInfo));
-
-    const std::vector<vkhpp::DescriptorUpdateTemplateEntry> descriptorUpdateEntries = {
-        {
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorCount = 4,
-            .descriptorType = vkhpp::DescriptorType::eUniformBuffer,
-            .offset = 0,
-            .stride = sizeof(VkDescriptorBufferInfo),
-        },
-    };
-    const vkhpp::DescriptorUpdateTemplateCreateInfo descriptorUpdateTemplateCreateInfo = {
-        .descriptorUpdateEntryCount = static_cast<uint32_t>(descriptorUpdateEntries.size()),
-        .pDescriptorUpdateEntries = descriptorUpdateEntries.data(),
-        .descriptorSetLayout = *descriptorSetLayout,
-        .pipelineBindPoint = vkhpp::PipelineBindPoint::eGraphics,
-        .pipelineLayout = *pipelineLayout,
-        .set = 0,
-    };
-    auto descriptorUpdateTemplate = VK_ASSERT_RV(
-        device->createDescriptorUpdateTemplateUnique(descriptorUpdateTemplateCreateInfo));
-
-    device->updateDescriptorSetWithTemplate(*descriptorSet, *descriptorUpdateTemplate,
-                                            descriptorInfo.data());
-}
-
-TEST_P(GfxstreamEnd2EndVkTest, MultiThreadedVkMapMemory) {
-    auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
-        VK_ASSERT(SetUpTypicalVkTestEnvironment());
-
-    static constexpr const vkhpp::DeviceSize kSize = 1024;
-    const vkhpp::BufferCreateInfo bufferCreateInfo = {
-        .size = kSize,
-        .usage = vkhpp::BufferUsageFlagBits::eTransferSrc,
-    };
-    auto buffer = device->createBufferUnique(bufferCreateInfo).value;
-
-    vkhpp::MemoryRequirements bufferMemoryRequirements{};
-    device->getBufferMemoryRequirements(*buffer, &bufferMemoryRequirements);
-
-    const uint32_t bufferMemoryIndex = utils::getMemoryType(
-        physicalDevice, bufferMemoryRequirements,
-        vkhpp::MemoryPropertyFlagBits::eHostVisible | vkhpp::MemoryPropertyFlagBits::eHostCoherent);
-    if (bufferMemoryIndex == -1) {
-        GTEST_SKIP() << "Skipping test due to no memory type with HOST_VISIBLE | HOST_COHERENT.";
-    }
-
-    std::vector<std::thread> threads;
-    std::atomic_int threadsReady{0};
-
-    constexpr const int kNumThreads = 2;
-    for (int t = 0; t < kNumThreads; t++) {
-        threads.emplace_back([&, this]() {
-            // Perform some work to ensure host RenderThread started.
-            auto buffer2 = device->createBufferUnique(bufferCreateInfo).value;
-            ASSERT_THAT(buffer2, IsValidHandle());
-
-            ++threadsReady;
-            while (threadsReady.load() != kNumThreads) {
-            }
-
-            constexpr const int kNumIterations = 100;
-            for (int i = 0; i < kNumIterations; i++) {
-                auto buffer3 = device->createBufferUnique(bufferCreateInfo).value;
-                ASSERT_THAT(buffer3, IsValidHandle());
-
-                const vkhpp::MemoryAllocateInfo buffer3MemoryAllocateInfo = {
-                    .allocationSize = bufferMemoryRequirements.size,
-                    .memoryTypeIndex = bufferMemoryIndex,
-                };
-                auto buffer3Memory = device->allocateMemoryUnique(buffer3MemoryAllocateInfo).value;
-                ASSERT_THAT(buffer3Memory, IsValidHandle());
-
-                ASSERT_THAT(device->bindBufferMemory(*buffer3, *buffer3Memory, 0), IsVkSuccess());
-
-                void* mapped = nullptr;
-                ASSERT_THAT(device->mapMemory(*buffer3Memory, 0, VK_WHOLE_SIZE,
-                                              vkhpp::MemoryMapFlags{}, &mapped),
-                            IsVkSuccess());
-                ASSERT_THAT(mapped, NotNull());
-
-                device->unmapMemory(*buffer3Memory);
-            }
-        });
-    }
-
-    for (auto& thread : threads) {
-        thread.join();
-    }
-}
-
-TEST_P(GfxstreamEnd2EndVkTest, MultiThreadedResetCommandBuffer) {
-    auto [instance, physicalDevice, device, queue, queueFamilyIndex] =
-        VK_ASSERT(SetUpTypicalVkTestEnvironment());
-
-    static constexpr const vkhpp::DeviceSize kSize = 1024;
-    const vkhpp::BufferCreateInfo bufferCreateInfo = {
-        .size = kSize,
-        .usage = vkhpp::BufferUsageFlagBits::eTransferSrc,
-    };
-
-    static std::mutex queue_mutex;
-    std::vector<std::thread> threads;
-    std::atomic_int threadsReady{0};
-
-    constexpr const int kNumThreads = 10;
-    for (int t = 0; t < kNumThreads; t++) {
-        threads.emplace_back([&, this]() {
-            // Perform some work to ensure host RenderThread started.
-            auto buffer2 = device->createBufferUnique(bufferCreateInfo).value;
-            ASSERT_THAT(buffer2, IsValidHandle());
-
-            ++threadsReady;
-            while (threadsReady.load() != kNumThreads) {
-            }
-
-            const vkhpp::CommandPoolCreateInfo commandPoolCreateInfo = {
-                .queueFamilyIndex = queueFamilyIndex,
-            };
-            auto commandPool = device->createCommandPoolUnique(commandPoolCreateInfo).value;
-
-            const vkhpp::CommandBufferAllocateInfo commandBufferAllocateInfo = {
-                .level = vkhpp::CommandBufferLevel::ePrimary,
-                .commandPool = *commandPool,
-                .commandBufferCount = 1,
-            };
-            auto commandBuffers = device->allocateCommandBuffersUnique(commandBufferAllocateInfo).value;
-            ASSERT_THAT(commandBuffers, Not(IsEmpty()));
-            auto commandBuffer = std::move(commandBuffers[0]);
-            ASSERT_THAT(commandBuffer, IsValidHandle());
-
-            auto transferFence = device->createFenceUnique(vkhpp::FenceCreateInfo()).value;
-            ASSERT_THAT(commandBuffer, IsValidHandle());
-
-            constexpr const int kNumIterations = 1000;
-            for (int i = 0; i < kNumIterations; i++) {
-                commandBuffer->reset();
-                const vkhpp::CommandBufferBeginInfo commandBufferBeginInfo = {
-                    .flags = vkhpp::CommandBufferUsageFlagBits::eOneTimeSubmit,
-                };
-                commandBuffer->begin(commandBufferBeginInfo);
-
-                commandBuffer->end();
-
-                std::vector<vkhpp::CommandBuffer> commandBufferHandles;
-                commandBufferHandles.push_back(*commandBuffer);
-
-                const vkhpp::SubmitInfo submitInfo = {
-                    .commandBufferCount = static_cast<uint32_t>(commandBufferHandles.size()),
-                    .pCommandBuffers = commandBufferHandles.data(),
-                };
-                {
-                    std::lock_guard<std::mutex> qm(queue_mutex);
-                    queue.submit(submitInfo, *transferFence);
-                }
-                auto waitResult = device->waitForFences(*transferFence, VK_TRUE, AsVkTimeout(3s));
-                ASSERT_THAT(waitResult, IsVkSuccess());
-            }
-        });
-    }
-
-    for (auto& thread : threads) {
-        thread.join();
-    }
-}
-
-std::vector<TestParams> GenerateTestCases() {
-    std::vector<TestParams> cases = {TestParams{
-                                         .with_gl = false,
-                                         .with_vk = true,
-                                         .with_transport = GfxstreamTransport::kVirtioGpuAsg,
-                                     },
-                                     TestParams{
-                                         .with_gl = true,
-                                         .with_vk = true,
-                                         .with_transport = GfxstreamTransport::kVirtioGpuAsg,
-                                     },
-                                     TestParams{
-                                         .with_gl = false,
-                                         .with_vk = true,
-                                         .with_transport = GfxstreamTransport::kVirtioGpuPipe,
-                                     },
-                                     TestParams{
-                                         .with_gl = true,
-                                         .with_vk = true,
-                                         .with_transport = GfxstreamTransport::kVirtioGpuPipe,
-                                     }};
-    cases = WithAndWithoutFeatures(cases, {"VulkanSnapshots"});
-    cases = WithAndWithoutFeatures(cases, {"VulkanUseDedicatedAhbMemoryType"});
-    return cases;
-}
-
 INSTANTIATE_TEST_CASE_P(GfxstreamEnd2EndTests, GfxstreamEnd2EndVkTest,
-                        ::testing::ValuesIn(GenerateTestCases()), &GetTestName);
+                        ::testing::ValuesIn({
+                            TestParams{
+                                .with_gl = false,
+                                .with_vk = true,
+                                .with_transport = GfxstreamTransport::kVirtioGpuAsg,
+                            },
+                            TestParams{
+                                .with_gl = true,
+                                .with_vk = true,
+                                .with_transport = GfxstreamTransport::kVirtioGpuAsg,
+                            },
+                            TestParams{
+                                .with_gl = false,
+                                .with_vk = true,
+                                .with_transport = GfxstreamTransport::kVirtioGpuPipe,
+                            },
+                            TestParams{
+                                .with_gl = true,
+                                .with_vk = true,
+                                .with_transport = GfxstreamTransport::kVirtioGpuPipe,
+                            },
+                        }),
+                        &GetTestName);
 
 }  // namespace
 }  // namespace tests

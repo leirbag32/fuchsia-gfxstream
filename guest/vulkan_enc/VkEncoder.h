@@ -923,8 +923,6 @@ class VkEncoder {
 #endif
 #ifdef VK_EXT_swapchain_colorspace
 #endif
-#ifdef VK_MVK_moltenvk
-#endif
 #ifdef VK_EXT_queue_family_foreign
 #endif
 #ifdef VK_EXT_debug_utils
@@ -954,8 +952,6 @@ class VkEncoder {
                                                   uint32_t* pToolCount,
                                                   VkPhysicalDeviceToolProperties* pToolProperties,
                                                   uint32_t doLock);
-#endif
-#ifdef VK_EXT_validation_features
 #endif
 #ifdef VK_EXT_provoking_vertex
 #endif
@@ -1019,8 +1015,6 @@ class VkEncoder {
 #endif
 #ifdef VK_EXT_device_memory_report
 #endif
-#ifdef VK_EXT_robustness2
-#endif
 #ifdef VK_EXT_custom_border_color
 #endif
 #ifdef VK_EXT_private_data
@@ -1036,8 +1030,6 @@ class VkEncoder {
                              VkPrivateDataSlot privateDataSlot, uint64_t* pData, uint32_t doLock);
 #endif
 #ifdef VK_EXT_pipeline_creation_cache_control
-#endif
-#ifdef VK_EXT_metal_objects
 #endif
 #ifdef VK_EXT_graphics_pipeline_library
 #endif
