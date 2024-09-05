@@ -128,11 +128,11 @@ source_set("goldfish_srcs") {
     "//sdk/lib/async:async-cpp",
     "//sdk/lib/async-loop:async-loop-cpp",
     "//sdk/lib/syslog/structured_backend",
+    "//sdk/lib/zxio",
     "//third_party/Vulkan-Headers:vulkan_headers",
     "//zircon/system/ulib/trace:trace-with-static-engine",
     "//zircon/system/ulib/trace-provider:trace-provider-with-static-engine",
     "//zircon/system/ulib/zx",
-    "//zircon/system/ulib/zxio",
   ]
 
   deps = [ ":gfxstream_vk_entrypoints" ]
@@ -294,11 +294,11 @@ loadable_module("libvulkan_gfxstream") {
       ":goldfish_srcs",
       "//sdk/fidl/fuchsia.logger:fuchsia.logger_cpp",
       "//sdk/fidl/fuchsia.sysmem:fuchsia.sysmem_cpp",
+      "//sdk/lib/zxio",
       "//src/graphics/lib/magma/src/libmagma",
       "//src/zircon/lib/zircon",
       "//zircon/system/ulib/trace:trace-with-static-engine",
       "//zircon/system/ulib/zx",
-      "//zircon/system/ulib/zxio",
     ]
 
     public_deps = [ "//third_party/Vulkan-Headers:vulkan_headers" ]
