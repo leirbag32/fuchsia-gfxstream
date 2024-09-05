@@ -125,10 +125,10 @@ source_set("goldfish_srcs") {
     "//sdk/fidl/fuchsia.hardware.goldfish:fuchsia.hardware.goldfish_cpp",
     "//sdk/fidl/fuchsia.logger:fuchsia.logger_cpp",
     "//sdk/fidl/fuchsia.sysmem:fuchsia.sysmem_cpp",
+    "//sdk/lib/async:async-cpp",
+    "//sdk/lib/async-loop:async-loop-cpp",
     "//sdk/lib/syslog/structured_backend",
     "//third_party/Vulkan-Headers:vulkan_headers",
-    "//zircon/system/ulib/async:async-cpp",
-    "//zircon/system/ulib/async-loop:async-loop-cpp",
     "//zircon/system/ulib/trace:trace-with-static-engine",
     "//zircon/system/ulib/trace-provider:trace-provider-with-static-engine",
     "//zircon/system/ulib/zx",
@@ -306,8 +306,8 @@ loadable_module("libvulkan_gfxstream") {
     # Vulkan ICDs on Fuchsia are only allowed to depend on (parts of) libc
     # and libzircon, and no other shared libraries.
     assert_no_deps = [
+      "//sdk/lib/async-default",
       "//sdk/lib/fdio",
-      "//zircon/system/ulib/async-default",
     ]
   }
 }
