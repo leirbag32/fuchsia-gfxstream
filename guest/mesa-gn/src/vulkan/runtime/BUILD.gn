@@ -134,6 +134,7 @@ mesa_source_set("runtime") {
 }
 
 python_binary("vk_cmd_queue_gen_bin") {
+  enable_mypy = false
   main_source = "$mesa_source_root/src/vulkan/util/vk_cmd_queue_gen.py"
 
   sources = [
@@ -175,6 +176,7 @@ python_action("vk_cmd_queue") {
 }
 
 python_binary("vk_entrypoints_gen_bin") {
+  enable_mypy = false
   main_source = "$mesa_source_root/src/vulkan/util/vk_entrypoints_gen.py"
 
   sources = [
@@ -256,6 +258,7 @@ python_action("vk_cmd_enqueue_entrypoints") {
 }
 
 python_binary("vk_dispatch_trampolines_gen_bin") {
+  enable_mypy = false
   main_source =
       "$mesa_source_root/src/vulkan/util/vk_dispatch_trampolines_gen.py"
 
@@ -298,6 +301,7 @@ python_action("vk_dispatch_trampolines") {
 }
 
 python_binary("vk_physical_device_features_gen_bin") {
+  enable_mypy = false
   main_source =
       "$mesa_source_root/src/vulkan/util/vk_physical_device_features_gen.py"
 
@@ -332,6 +336,7 @@ python_action("vk_physical_device_features") {
 }
 
 python_binary("vk_physical_device_properties_gen_bin") {
+  enable_mypy = false
   main_source =
       "$mesa_source_root/src/vulkan/util/vk_physical_device_properties_gen.py"
 
@@ -366,6 +371,7 @@ python_action("vk_physical_device_properties") {
 }
 
 python_binary("vk_format_info_gen_bin") {
+  enable_mypy = false
   main_source = "$mesa_source_root/src/vulkan/runtime/vk_format_info_gen.py"
 
   sources = [ "$mesa_source_root/src/vulkan/util/vk_extensions.py" ]

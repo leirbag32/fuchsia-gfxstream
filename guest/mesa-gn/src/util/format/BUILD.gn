@@ -102,6 +102,7 @@ template("mesa_python_stdout_to_file_action") {
 
   py_binary_target = "${target_name}_py_binary"
   python_binary(py_binary_target) {
+    enable_mypy = false
     forward_variables_from(invoker,
                            [
                              "sources",

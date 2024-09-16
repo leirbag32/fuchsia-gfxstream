@@ -65,6 +65,7 @@ config("common_config") {
 }
 
 python_binary("vk_entrypoints_gen_bin") {
+  enable_mypy = false
   main_source = "$mesa_source_root/src/vulkan/util/vk_entrypoints_gen.py"
 
   sources = [

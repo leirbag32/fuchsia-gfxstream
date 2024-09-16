@@ -67,6 +67,7 @@ mesa_source_set("util") {
 }
 
 python_binary("gen_enum_to_str_gen_bin") {
+  enable_mypy = false
   main_source = "$util/gen_enum_to_str.py"
 
   sources = [ "$util/vk_extensions.py" ]
@@ -95,6 +96,7 @@ python_action("gen_enum_to_str") {
 }
 
 python_binary("vk_dispatch_table_gen_bin") {
+  enable_mypy = false
   main_source = "$util/vk_dispatch_table_gen.py"
 
   sources = [
@@ -135,6 +137,7 @@ python_action("vk_dispatch_table") {
 }
 
 python_binary("vk_extensions_gen_bin") {
+  enable_mypy = false
   main_source = "$util/vk_extensions_gen.py"
 
   sources = [
@@ -171,6 +174,7 @@ python_action("vk_extensions") {
 }
 
 python_binary("vk_struct_type_cast_gen_bin") {
+  enable_mypy = false
   main_source = "$util/vk_struct_type_cast_gen.py"
 
   sources = [
