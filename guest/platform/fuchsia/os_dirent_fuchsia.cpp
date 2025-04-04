@@ -27,7 +27,7 @@ struct os_dir {
             zxio_dirent_iterator_destroy(&iterator_);
         }
         if (zxio_init_) {
-            zxio_close(&io_storage_.io, /*should_wait=*/true);
+            zxio_destroy(&io_storage_.io);
         }
     }
 

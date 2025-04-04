@@ -130,11 +130,11 @@ class VulkanDevice {
         if (handle == ZX_HANDLE_INVALID) return false;
 
         zxio_storage_t io_storage;
-        zx_status_t status = zxio_create(handle, &io_storage);
-        if (status != ZX_OK) return false;
+        if (zx_status_t status = zxio_create(handle, &io_storage); status != ZX_OK) {
+            return false;
+        }
 
-        status = zxio_close(&io_storage.io, /*should_wait=*/true);
-        if (status != ZX_OK) return false;
+        zxio_destroy(&io_storage.io);
 
         return true;
     }
