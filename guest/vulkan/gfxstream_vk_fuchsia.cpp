@@ -133,7 +133,7 @@ class VulkanDevice {
         zx_status_t status = zxio_create(handle, &io_storage);
         if (status != ZX_OK) return false;
 
-        status = zxio_destroy(&io_storage.io);
+        status = zxio_close(&io_storage.io, /*should_wait=*/true);
         if (status != ZX_OK) return false;
 
         return true;
