@@ -37,9 +37,9 @@ static zx_koid_t pid = GetKoid(zx_process_self());
 
 static thread_local zx_koid_t tid = GetKoid(zx_thread_self());
 
-cpp17::optional<cpp17::string_view> CStringToStringView(const char* cstr) {
+std::optional<std::string_view> CStringToStringView(const char* cstr) {
     if (!cstr) {
-        return cpp17::nullopt;
+        return std::nullopt;
     }
     return cstr;
 }
