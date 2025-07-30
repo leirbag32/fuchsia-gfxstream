@@ -9,11 +9,11 @@
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
-#include <thread>
 #include <cstring>
+#include <thread>
 
 #if defined(__Fuchsia__)
-#include <lib/syslog/structured_backend/cpp/fuchsia_syslog.h>
+#include <lib/syslog/structured_backend/fuchsia_syslog.h>
 #include <log/log.h>
 #else
 #include <libgen.h>
@@ -25,26 +25,22 @@
 extern "C" {
 
 #if !defined(__Fuchsia__)
-static void linux_log_prefix(const char *prefix, const char *file, int line, const char *format,
-                             va_list ap, ...)
-{
-  char buf[50];
-  char *dup = strdup(file);
-  if (!dup)
-    return;
+static void linux_log_prefix(const char* prefix, const char* file, int line, const char* format,
+                             va_list ap, ...) {
+    char buf[50];
+    char* dup = strdup(file);
+    if (!dup) return;
 
-  snprintf(buf, sizeof(buf), "[%s(%d)]", basename(dup), line);
-  fprintf(stderr, "%s", buf);
-  vfprintf(stderr, format, ap);
-  fprintf(stderr, "\n");
+    snprintf(buf, sizeof(buf), "[%s(%d)]", basename(dup), line);
+    fprintf(stderr, "%s", buf);
+    vfprintf(stderr, format, ap);
+    fprintf(stderr, "\n");
 
-  free(dup);
+    free(dup);
 }
 #endif
 
-int property_get(const char* key, char* value, const char* default_value) {
-  return 0;
-}
+int property_get(const char* key, char* value, const char* default_value) { return 0; }
 
 // According to https://developer.android.com/ndk/reference/group/logging,
 // some log levels "Should typically be disabled for a release apk."

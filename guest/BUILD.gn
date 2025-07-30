@@ -136,7 +136,10 @@ source_set("goldfish_srcs") {
     "//zircon/system/ulib/zx",
   ]
 
-  deps = [ ":gfxstream_vk_entrypoints" ]
+  deps = [
+    ":gfxstream_vk_entrypoints",
+    "//zircon/system/ulib/fbl",
+  ]
 
   defines = [
     "QEMU_PIPE_PATH=\"/loader-gpu-devices/class/goldfish-pipe/000\"",
