@@ -40,7 +40,7 @@ using gfxstream::guest::WorkPool;
 
 #include <cutils/native_handle.h>
 #include <fidl/fuchsia.hardware.goldfish/cpp/wire.h>
-#include <fidl/fuchsia.sysmem/cpp/wire.h>
+#include <fidl/fuchsia.sysmem2/cpp/fidl.h>
 #include <lib/zx/channel.h>
 #include <lib/zx/vmo.h>
 #include <zircon/errors.h>
@@ -48,6 +48,8 @@ using gfxstream::guest::WorkPool;
 #include <zircon/rights.h>
 #include <zircon/syscalls.h>
 #include <zircon/syscalls/object.h>
+#include <lib/sysmem-version/sysmem-version.h>
+#include <bind/fuchsia/goldfish/platform/sysmem/heap/cpp/bind.h>
 
 #include <optional>
 
@@ -61,13 +63,13 @@ using gfxstream::guest::WorkPool;
 
 struct SetBufferCollectionImageConstraintsResult {
     VkResult result;
-    fuchsia_sysmem::wire::BufferCollectionConstraints constraints;
+    fuchsia_sysmem2::BufferCollectionConstraints constraints;
     std::vector<uint32_t> createInfoIndex;
 };
 
 struct SetBufferCollectionBufferConstraintsResult {
     VkResult result;
-    fuchsia_sysmem::wire::BufferCollectionConstraints constraints;
+    fuchsia_sysmem2::BufferCollectionConstraints constraints;
 };
 
 #else
@@ -309,11 +311,11 @@ class ResourceTracker {
 
     VkResult setBufferCollectionImageConstraintsFUCHSIA(
         VkEncoder* enc, VkDevice device,
-        fidl::WireSyncClient<fuchsia_sysmem::BufferCollection>* pCollection,
+        fidl::SyncClient<fuchsia_sysmem2::BufferCollection>* pCollection,
         const VkImageConstraintsInfoFUCHSIA* pImageConstraintsInfo);
 
     VkResult setBufferCollectionBufferConstraintsFUCHSIA(
-        fidl::WireSyncClient<fuchsia_sysmem::BufferCollection>* pCollection,
+        fidl::SyncClient<fuchsia_sysmem2::BufferCollection>* pCollection,
         const VkBufferConstraintsInfoFUCHSIA* pBufferConstraintsInfo);
 
 #endif
@@ -688,17 +690,17 @@ class ResourceTracker {
 
 #if defined(VK_USE_PLATFORM_FUCHSIA)
     VkResult getBufferCollectionImageCreateInfoIndexLocked(
-        VkBufferCollectionFUCHSIA collection, fuchsia_sysmem::wire::BufferCollectionInfo2& info,
+        VkBufferCollectionFUCHSIA collection, fuchsia_sysmem2::BufferCollectionInfo& info,
         uint32_t* outCreateInfoIndex);
 
     SetBufferCollectionImageConstraintsResult setBufferCollectionImageConstraintsImpl(
         VkEncoder* enc, VkDevice device,
-        fidl::WireSyncClient<fuchsia_sysmem::BufferCollection>* pCollection,
+        fidl::SyncClient<fuchsia_sysmem2::BufferCollection>* pCollection,
         const VkImageConstraintsInfoFUCHSIA* pImageConstraintsInfo);
 
     VkResult setBufferCollectionConstraintsFUCHSIA(
         VkEncoder* enc, VkDevice device,
-        fidl::WireSyncClient<fuchsia_sysmem::BufferCollection>* collection,
+        fidl::SyncClient<fuchsia_sysmem2::BufferCollection>* collection,
         const VkImageCreateInfo* pImageInfo);
 #endif
 
@@ -856,7 +858,7 @@ class ResourceTracker {
 
     struct VkBufferCollectionFUCHSIA_Info {
 #ifdef VK_USE_PLATFORM_FUCHSIA
-        std::optional<fuchsia_sysmem::wire::BufferCollectionConstraints> constraints;
+        std::optional<fuchsia_sysmem2::BufferCollectionConstraints> constraints;
         std::optional<VkBufferCollectionPropertiesFUCHSIA> properties;
 
         // the index of corresponding createInfo for each image format
@@ -894,7 +896,7 @@ class ResourceTracker {
 
 #ifdef VK_USE_PLATFORM_FUCHSIA
     fidl::WireSyncClient<fuchsia_hardware_goldfish::ControlDevice> mControlDevice;
-    fidl::WireSyncClient<fuchsia_sysmem::Allocator> mSysmemAllocator;
+    fidl::SyncClient<fuchsia_sysmem2::Allocator> mSysmemAllocator;
 #endif
 
 #define HANDLE_REGISTER_DECLARATION(type) std::unordered_map<type, type##_Info> info_##type;

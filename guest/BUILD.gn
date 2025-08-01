@@ -134,6 +134,9 @@ source_set("goldfish_srcs") {
     "//zircon/system/ulib/trace:trace-with-static-engine",
     "//zircon/system/ulib/trace-provider:trace-provider-with-static-engine",
     "//zircon/system/ulib/zx",
+    "//zircon/system/ulib/zxio",
+    "//zircon/system/ulib/sysmem-version",
+    "//src/devices/bind/fuchsia.goldfish.platform.sysmem.heap:fuchsia.goldfish.platform.sysmem.heap_cpp",
   ]
 
   deps = [ ":gfxstream_vk_entrypoints" ]
