@@ -4,8 +4,11 @@
  */
 
 #include <cutils/log.h>
+#include <fbl/no_destructor.h>
 #include <fidl/fuchsia.logger/cpp/wire.h>
-#include <lib/syslog/structured_backend/cpp/fuchsia_syslog.h>
+#include <lib/syslog/structured_backend/cpp/log_buffer.h>
+#include <lib/syslog/structured_backend/cpp/log_connection.h>
+#include <lib/syslog/structured_backend/fuchsia_syslog.h>
 #include <lib/zx/channel.h>
 #include <lib/zx/socket.h>
 #include <lib/zxio/zxio.h>
@@ -20,7 +23,7 @@
 
 namespace {
 
-zx::socket g_log_socket = zx::socket(ZX_HANDLE_INVALID);
+fbl::NoDestructor<fuchsia_logging::LogConnection> log_connection;
 
 typedef VkResult(VKAPI_PTR* PFN_vkOpenInNamespaceAddr)(const char* pName, uint32_t handle);
 
@@ -66,10 +69,10 @@ const char* StripFile(const char* file, FuchsiaLogSeverity severity) {
 
 extern "C" void gfxstream_fuchsia_log(int8_t severity, const char* tag, const char* file, int line,
                                       const char* format, va_list va) {
-    if (!g_log_socket.is_valid()) {
+    if (!log_connection->is_valid()) {
         abort();
     }
-    fuchsia_syslog::LogBuffer buffer;
+    fuchsia_logging::LogBuffer buffer;
     constexpr size_t kFormatStringLength = 1024;
     char fmt_string[kFormatStringLength];
     fmt_string[kFormatStringLength - 1] = 0;
@@ -92,12 +95,11 @@ extern "C" void gfxstream_fuchsia_log(int8_t severity, const char* tag, const ch
     if (file) {
         file = StripFile(file, severity);
     }
-    buffer.BeginRecord(severity, CStringToStringView(file), line, fmt_string, g_log_socket.borrow(),
-                       0, pid, tid);
+    buffer.BeginRecord(severity, CStringToStringView(file), line, fmt_string, 0, pid, tid);
     if (tag) {
         buffer.WriteKeyValue("tag", tag);
     }
-    buffer.FlushRecord();
+    log_connection->FlushBuffer(buffer);
 }
 
 zx_handle_t LocalConnectToServiceFunction(const char* pName) {
@@ -152,24 +154,13 @@ class VulkanDevice {
 };
 
 void VulkanDevice::InitLogger() {
-    auto log_socket = ([]() -> std::optional<zx::socket> {
-        fidl::ClientEnd<fuchsia_logger::LogSink> channel{
-            zx::channel{GetConnectToServiceFunction()("/svc/fuchsia.logger.LogSink")}};
-        if (!channel.is_valid()) return std::nullopt;
-
-        zx::socket local_socket, remote_socket;
-        zx_status_t status = zx::socket::create(ZX_SOCKET_DATAGRAM, &local_socket, &remote_socket);
-        if (status != ZX_OK) return std::nullopt;
-
-        auto result = fidl::WireCall(channel)->ConnectStructured(std::move(remote_socket));
-
-        if (!result.ok()) return std::nullopt;
-
-        return local_socket;
-    })();
-    if (!log_socket) return;
-
-    g_log_socket = std::move(*log_socket);
+    auto connection =
+        fuchsia_logging::LogConnection::Create(fidl::ClientEnd<fuchsia_logger::LogSink>(
+            zx::channel(GetConnectToServiceFunction()("/svc/fuchsia.logger.LogSink"))));
+    if (connection.is_error()) {
+        return;
+    }
+    *log_connection = *std::move(connection);
 }
 
 void VulkanDevice::InitTraceProvider() {

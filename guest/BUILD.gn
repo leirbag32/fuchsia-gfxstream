@@ -139,7 +139,10 @@ source_set("goldfish_srcs") {
     "//src/devices/bind/fuchsia.goldfish.platform.sysmem.heap:fuchsia.goldfish.platform.sysmem.heap_cpp",
   ]
 
-  deps = [ ":gfxstream_vk_entrypoints" ]
+  deps = [
+    ":gfxstream_vk_entrypoints",
+    "//zircon/system/ulib/fbl",
+  ]
 
   defines = [
     "QEMU_PIPE_PATH=\"/loader-gpu-devices/class/goldfish-pipe/000\"",
