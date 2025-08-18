@@ -7,7 +7,7 @@
 #include <fbl/no_destructor.h>
 #include <fidl/fuchsia.logger/cpp/wire.h>
 #include <lib/syslog/structured_backend/cpp/log_buffer.h>
-#include <lib/syslog/structured_backend/cpp/log_connection.h>
+#include <lib/syslog/structured_backend/cpp/logger.h>
 #include <lib/syslog/structured_backend/fuchsia_syslog.h>
 #include <lib/zx/channel.h>
 #include <lib/zx/socket.h>
@@ -23,7 +23,7 @@
 
 namespace {
 
-fbl::NoDestructor<fuchsia_logging::LogConnection> log_connection;
+fbl::NoDestructor<fuchsia_logging::Logger> logger;
 
 typedef VkResult(VKAPI_PTR* PFN_vkOpenInNamespaceAddr)(const char* pName, uint32_t handle);
 
@@ -69,7 +69,7 @@ const char* StripFile(const char* file, FuchsiaLogSeverity severity) {
 
 extern "C" void gfxstream_fuchsia_log(int8_t severity, const char* tag, const char* file, int line,
                                       const char* format, va_list va) {
-    if (!log_connection->is_valid()) {
+    if (!logger->IsValid()) {
         abort();
     }
     fuchsia_logging::LogBuffer buffer;
@@ -99,7 +99,7 @@ extern "C" void gfxstream_fuchsia_log(int8_t severity, const char* tag, const ch
     if (tag) {
         buffer.WriteKeyValue("tag", tag);
     }
-    log_connection->FlushBuffer(buffer);
+    logger->FlushBuffer(buffer);
 }
 
 zx_handle_t LocalConnectToServiceFunction(const char* pName) {
@@ -154,13 +154,13 @@ class VulkanDevice {
 };
 
 void VulkanDevice::InitLogger() {
-    auto connection =
-        fuchsia_logging::LogConnection::Create(fidl::ClientEnd<fuchsia_logger::LogSink>(
-            zx::channel(GetConnectToServiceFunction()("/svc/fuchsia.logger.LogSink"))));
-    if (connection.is_error()) {
+    auto logger = fuchsia_logging::Logger::Create(fuchsia_logging::RawLogSettings{
+        .log_sink = GetConnectToServiceFunction()("/svc/fuchsia.logger.LogSink"),
+    });
+    if (logger.is_error()) {
         return;
     }
-    *log_connection = *std::move(connection);
+    *logger = *std::move(logger);
 }
 
 void VulkanDevice::InitTraceProvider() {
