@@ -13,8 +13,7 @@
 #include <lib/zx/socket.h>
 #include <lib/zxio/zxio.h>
 #include <unistd.h>
-#include <zircon/system/public/zircon/process.h>
-
+#include <zircon/process.h>
 #include <cstdarg>
 
 #include "ResourceTracker.h"
