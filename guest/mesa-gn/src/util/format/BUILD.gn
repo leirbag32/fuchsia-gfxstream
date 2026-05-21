@@ -101,18 +101,27 @@ template("mesa_python_stdout_to_file_action") {
   assert(defined(invoker.output), "output is required")
 
   py_binary_target = "${target_name}_py_binary"
-  python_binary(py_binary_target) {
-    enable_mypy = false
-    forward_variables_from(invoker,
-                           [
-                             "sources",
-                             "testonly",
-                           ])
-    main_source = invoker.script
-    if (defined(invoker.libraries)) {
-      deps = invoker.libraries
+  if (is_host) {
+    python_binary(py_binary_target) {
+      enable_mypy = false
+      forward_variables_from(invoker,
+                             [
+                               "sources",
+                               "testonly",
+                             ])
+      main_source = invoker.script
+      if (defined(invoker.libraries)) {
+        deps = invoker.libraries
+      }
+      visibility = [ ":*" ]
     }
-    visibility = [ ":*" ]
+  } else {
+    not_needed(invoker,
+               [
+                 "script",
+                 "libraries",
+                 "sources",
+               ])
   }
 
   action(target_name) {
@@ -126,10 +135,7 @@ template("mesa_python_stdout_to_file_action") {
     script = "gn_script_wrapper.sh"
     outputs = [ "${target_gen_dir}/${invoker.output}" ]
 
-    py_binary = get_target_outputs(":${py_binary_target}")
-    assert(py_binary == [ py_binary[0] ],
-           "${py_binary_target} should only have one output")
-    py_binary = py_binary[0]
+    py_binary = get_label_info(":${py_binary_target}($host_toolchain)", "target_out_dir") + "/${py_binary_target}.pyz"
     sources = [ py_binary ]
 
     # Ensure scripts can import other scripts in the same directory
@@ -149,7 +155,7 @@ template("mesa_python_stdout_to_file_action") {
       args += invoker.args
     }
 
-    deps = [ ":${py_binary_target}" ]
+    deps = [ ":${py_binary_target}($host_toolchain)" ]
     if (defined(invoker.deps)) {
       deps += invoker.deps
     }

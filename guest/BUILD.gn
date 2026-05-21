@@ -64,15 +64,17 @@ config("common_config") {
   ]
 }
 
-python_binary("vk_entrypoints_gen_bin") {
-  enable_mypy = false
-  main_source = "$mesa_source_root/src/vulkan/util/vk_entrypoints_gen.py"
+if (is_host) {
+  python_binary("vk_entrypoints_gen_bin") {
+    enable_mypy = false
+    main_source = "$mesa_source_root/src/vulkan/util/vk_entrypoints_gen.py"
 
-  sources = [
-    "$mesa_source_root/src/vulkan/util/vk_entrypoints.py",
-    "$mesa_source_root/src/vulkan/util/vk_extensions.py",
-  ]
-  deps = [ "//third_party/mako" ]
+    sources = [
+      "$mesa_source_root/src/vulkan/util/vk_entrypoints.py",
+      "$mesa_source_root/src/vulkan/util/vk_extensions.py",
+    ]
+    deps = [ "//third_party/mako" ]
+  }
 }
 
 config("gfxstream_vk_entrypoints_config") {
