@@ -53,6 +53,7 @@ config("common_config") {
 
   cflags_cc = [
     "-Wno-conversion",
+    "-Wno-deprecated-declarations",
     "-Wno-newline-eof",
     "-Wno-pessimizing-move",
     "-Wno-sign-compare",
