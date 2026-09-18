@@ -79,5 +79,6 @@ config("common_config") {
     "-Wno-conversion",
     "-Wno-deprecated-anon-enum-enum-conversion",
     "-Wno-strict-prototypes",
+    "-Wno-call-graph-section-no-prototype",
   ]
 }
