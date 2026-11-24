@@ -30,6 +30,9 @@
 #include "virtgpu_gfxstream_protocol.h"
 #include "vulkan/vk_enum_string_helper.h"
 #include "vulkan/vulkan_core.h"
+#ifdef VK_USE_PLATFORM_FUCHSIA
+#include "FuchsiaVirtGpuColorBuffer.h"
+#endif
 
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
 #include "vk_format_info.h"
@@ -671,7 +674,7 @@ VkResult addImageBufferCollectionConstraintsFUCHSIA(
 
 SetBufferCollectionBufferConstraintsResult setBufferCollectionBufferConstraintsImpl(
     fidl::WireSyncClient<fuchsia_sysmem::BufferCollection>* pCollection,
-    const VkBufferConstraintsInfoFUCHSIA* pBufferConstraintsInfo) {
+    const VkBufferConstraintsInfoFUCHSIA* pBufferConstraintsInfo, bool goldfishHeaps) {
     const auto& collection = *pCollection;
     if (pBufferConstraintsInfo == nullptr) {
         mesa_loge(
@@ -684,6 +687,10 @@ SetBufferCollectionBufferConstraintsResult setBufferCollectionBufferConstraintsI
         defaultBufferCollectionConstraints(
             /* min_size_bytes */ pBufferConstraintsInfo->createInfo.size,
             /* buffer_count */ pBufferConstraintsInfo->bufferCollectionConstraints.minBufferCount);
+    if (!goldfishHeaps) {
+        // virtio-gpu has no goldfish heaps; buffers live in sysmem system RAM.
+        constraints.buffer_memory_constraints.heap_permitted_count = 0;
+    }
     constraints.usage.vulkan =
         getBufferCollectionConstraintsVulkanBufferUsage(pBufferConstraintsInfo);
 
@@ -1446,7 +1453,35 @@ void ResourceTracker::setupCaps(uint32_t& noRenderControlEnc) {
     }
 
     noRenderControlEnc = mCaps.vulkanCapset.noRenderControlEnc;
+
+#ifdef VK_USE_PLATFORM_FUCHSIA
+    // With virtio-gpu (noRenderControlEnc), setupFeatures() never runs, and it
+    // was the only place that connected sysmem.
+    setupSysmemAllocatorFuchsia();
+#endif
 }
+
+#ifdef VK_USE_PLATFORM_FUCHSIA
+void ResourceTracker::setupSysmemAllocatorFuchsia() {
+    if (mSysmemAllocator.is_valid()) return;
+
+    fidl::ClientEnd<fuchsia_sysmem::Allocator> sysmem_channel{
+        zx::channel(GetConnectToServiceFunction()("/svc/fuchsia.sysmem.Allocator"))};
+    if (!sysmem_channel) {
+        mesa_loge("failed to open sysmem connection");
+        return;
+    }
+    mSysmemAllocator = fidl::WireSyncClient<fuchsia_sysmem::Allocator>(std::move(sysmem_channel));
+    char name[ZX_MAX_NAME_LEN] = {};
+    zx_object_get_property(zx_process_self(), ZX_PROP_NAME, name, sizeof(name));
+    std::string client_name(name);
+    client_name += "-goldfish";
+    zx_info_handle_basic_t info;
+    zx_object_get_info(zx_process_self(), ZX_INFO_HANDLE_BASIC, &info, sizeof(info), nullptr,
+                       nullptr);
+    mSysmemAllocator->SetDebugClientInfo(fidl::StringView::FromExternal(client_name), info.koid);
+}
+#endif
 
 void ResourceTracker::setupFeatures(const EmulatorFeatureInfo* features) {
     if (!features || mFeatureInfo) return;
@@ -1471,22 +1506,7 @@ void ResourceTracker::setupFeatures(const EmulatorFeatureInfo* features) {
         mControlDevice =
             fidl::WireSyncClient<fuchsia_hardware_goldfish::ControlDevice>(std::move(channel));
 
-        fidl::ClientEnd<fuchsia_sysmem::Allocator> sysmem_channel{
-            zx::channel(GetConnectToServiceFunction()("/svc/fuchsia.sysmem.Allocator"))};
-        if (!sysmem_channel) {
-            mesa_loge("failed to open sysmem connection");
-        }
-        mSysmemAllocator =
-            fidl::WireSyncClient<fuchsia_sysmem::Allocator>(std::move(sysmem_channel));
-        char name[ZX_MAX_NAME_LEN] = {};
-        zx_object_get_property(zx_process_self(), ZX_PROP_NAME, name, sizeof(name));
-        std::string client_name(name);
-        client_name += "-goldfish";
-        zx_info_handle_basic_t info;
-        zx_object_get_info(zx_process_self(), ZX_INFO_HANDLE_BASIC, &info, sizeof(info), nullptr,
-                           nullptr);
-        mSysmemAllocator->SetDebugClientInfo(fidl::StringView::FromExternal(client_name),
-                                             info.koid);
+        setupSysmemAllocatorFuchsia();
     }
 #endif
 
@@ -2311,27 +2331,33 @@ VkResult ResourceTracker::on_vkGetMemoryZirconHandlePropertiesFUCHSIA(
 
     uint32_t memoryProperty = 0u;
 
-    auto result = mControlDevice->GetBufferHandleInfo(std::move(vmo_dup));
-    if (!result.ok()) {
-        mesa_loge("mControlDevice->GetBufferHandleInfo fatal error: epitaph: %d", result.status());
-        return VK_ERROR_INITIALIZATION_FAILED;
-    }
-    if (result.value().is_ok()) {
-        memoryProperty = result.value().value()->info.memory_property();
-    } else if (result.value().error_value() == ZX_ERR_NOT_FOUND) {
-        // If a VMO is allocated while ColorBuffer/Buffer is not created,
-        // it must be a device-local buffer, since for host-visible buffers,
-        // ColorBuffer/Buffer is created at sysmem allocation time.
+    if (!usesGoldfishControlFuchsia()) {
+        // virtio-gpu: sysmem memory is always imported as a host ColorBuffer.
         memoryProperty = kMemoryPropertyDeviceLocal;
     } else {
-        // Importing read-only host memory into the Vulkan driver should not
-        // work, but it is not an error to try to do so. Returning a
-        // VkMemoryZirconHandlePropertiesFUCHSIA with no available
-        // memoryType bits should be enough for clients. See fxbug.dev/42098398
-        // for other issues this this flow.
-        mesa_logw("GetBufferHandleInfo failed: %d", result.value().error_value());
-        pProperties->memoryTypeBits = 0;
-        return VK_SUCCESS;
+        auto result = mControlDevice->GetBufferHandleInfo(std::move(vmo_dup));
+        if (!result.ok()) {
+            mesa_loge("mControlDevice->GetBufferHandleInfo fatal error: epitaph: %d",
+                      result.status());
+            return VK_ERROR_INITIALIZATION_FAILED;
+        }
+        if (result.value().is_ok()) {
+            memoryProperty = result.value().value()->info.memory_property();
+        } else if (result.value().error_value() == ZX_ERR_NOT_FOUND) {
+            // If a VMO is allocated while ColorBuffer/Buffer is not created,
+            // it must be a device-local buffer, since for host-visible buffers,
+            // ColorBuffer/Buffer is created at sysmem allocation time.
+            memoryProperty = kMemoryPropertyDeviceLocal;
+        } else {
+            // Importing read-only host memory into the Vulkan driver should not
+            // work, but it is not an error to try to do so. Returning a
+            // VkMemoryZirconHandlePropertiesFUCHSIA with no available
+            // memoryType bits should be enough for clients. See fxbug.dev/42098398
+            // for other issues this this flow.
+            mesa_logw("GetBufferHandleInfo failed: %d", result.value().error_value());
+            pProperties->memoryTypeBits = 0;
+            return VK_SUCCESS;
+        }
     }
 
     pProperties->memoryTypeBits = 0;
@@ -2587,7 +2613,12 @@ SetBufferCollectionImageConstraintsResult ResourceTracker::setBufferCollectionIm
                                        VK_IMAGE_CONSTRAINTS_INFO_CPU_WRITE_RARELY_FUCHSIA |
                                        VK_IMAGE_CONSTRAINTS_INFO_CPU_WRITE_OFTEN_FUCHSIA));
 
-    if (memory_constraints.inaccessible_domain_supported) {
+    if (!usesGoldfishControlFuchsia()) {
+        // virtio-gpu: images live in sysmem system RAM and are rendered
+        // through the 2D resource (host ColorBuffer) shared with the display
+        // driver, see fuchsiaVirtGpuImportColorBuffer().
+        memory_constraints.heap_permitted_count = 0;
+    } else if (memory_constraints.inaccessible_domain_supported) {
         memory_constraints.heap_permitted_count = 2;
         memory_constraints.heap_permitted[0] = fuchsia_sysmem::wire::HeapType::kGoldfishDeviceLocal;
         memory_constraints.heap_permitted[1] = fuchsia_sysmem::wire::HeapType::kGoldfishHostVisible;
@@ -2647,7 +2678,8 @@ VkResult ResourceTracker::setBufferCollectionBufferConstraintsFUCHSIA(
     fidl::WireSyncClient<fuchsia_sysmem::BufferCollection>* pCollection,
     const VkBufferConstraintsInfoFUCHSIA* pBufferConstraintsInfo) {
     auto setConstraintsResult =
-        setBufferCollectionBufferConstraintsImpl(pCollection, pBufferConstraintsInfo);
+        setBufferCollectionBufferConstraintsImpl(pCollection, pBufferConstraintsInfo,
+                                                 usesGoldfishControlFuchsia());
     if (setConstraintsResult.result != VK_SUCCESS) {
         return setConstraintsResult.result;
     }
@@ -2767,7 +2799,11 @@ VkResult ResourceTracker::on_vkGetBufferCollectionPropertiesFUCHSIA(
         info.settings.buffer_settings.heap == fuchsia_sysmem::wire::HeapType::kGoldfishHostVisible;
     bool is_device_local =
         info.settings.buffer_settings.heap == fuchsia_sysmem::wire::HeapType::kGoldfishDeviceLocal;
-    if (!is_host_visible && !is_device_local) {
+    if (!usesGoldfishControlFuchsia()) {
+        // virtio-gpu: the memory is imported as a host ColorBuffer.
+        is_host_visible = false;
+        is_device_local = true;
+    } else if (!is_host_visible && !is_device_local) {
         mesa_loge("buffer collection uses a non-goldfish heap (type 0x%lu)",
                   static_cast<uint64_t>(info.settings.buffer_settings.heap));
         return VK_ERROR_INITIALIZATION_FAILED;
@@ -3702,31 +3738,64 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
                             abort();
                     }
 
-                    fidl::Arena arena;
-                    fuchsia_hardware_goldfish::wire::CreateColorBuffer2Params createParams(arena);
-                    createParams.set_width(pImageCreateInfo->extent.width)
-                        .set_height(pImageCreateInfo->extent.height)
-                        .set_format(format)
-                        .set_memory_property(
-                            fuchsia_hardware_goldfish::wire::kMemoryPropertyDeviceLocal);
-
-                    auto result = mControlDevice->CreateColorBuffer2(std::move(vmo_copy),
-                                                                     std::move(createParams));
-                    if (!result.ok() || result->res != ZX_OK) {
-                        if (result.ok() && result->res == ZX_ERR_ALREADY_EXISTS) {
-                            mesa_logd(
-                                "CreateColorBuffer: color buffer already "
-                                "exists\n");
+                    if (!usesGoldfishControlFuchsia()) {
+                        // virtio-gpu: values of fuchsia.images2.PixelFormat.
+                        constexpr uint32_t kPixelFormatB8G8R8A8 = 101;
+                        constexpr uint32_t kPixelFormatR8G8B8A8 = 121;
+                        uint32_t pixelFormat;
+                        if (format == fuchsia_hardware_goldfish::wire::ColorBufferFormatType::kBgra) {
+                            pixelFormat = kPixelFormatB8G8R8A8;
+                        } else if (format ==
+                                   fuchsia_hardware_goldfish::wire::ColorBufferFormatType::kRgba) {
+                            pixelFormat = kPixelFormatR8G8B8A8;
                         } else {
-                            mesa_loge("CreateColorBuffer failed: %d:%d", result.status(),
-                                      GET_STATUS_SAFE(result, res));
-                            abort();
+                            mesa_loge("%s: format %d has no virtio-gpu ColorBuffer", __func__,
+                                      pImageCreateInfo->format);
+                            return VK_ERROR_FORMAT_NOT_SUPPORTED;
+                        }
+                        uint32_t colorBuffer = 0;
+                        zx_status_t status = fuchsiaVirtGpuImportColorBuffer(
+                            VirtGpuDevice::getInstance(), vmo_copy.get(),
+                            pImageCreateInfo->extent.width, pImageCreateInfo->extent.height,
+                            pixelFormat, /*create=*/true, &colorBuffer);
+                        if (status != ZX_OK) {
+                            mesa_loge("%s: importing the ColorBuffer failed: %d", __func__,
+                                      status);
+                            return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+                        }
+                    } else {
+                        fidl::Arena arena;
+                        fuchsia_hardware_goldfish::wire::CreateColorBuffer2Params createParams(
+                            arena);
+                        createParams.set_width(pImageCreateInfo->extent.width)
+                            .set_height(pImageCreateInfo->extent.height)
+                            .set_format(format)
+                            .set_memory_property(
+                                fuchsia_hardware_goldfish::wire::kMemoryPropertyDeviceLocal);
+
+                        auto result = mControlDevice->CreateColorBuffer2(std::move(vmo_copy),
+                                                                         std::move(createParams));
+                        if (!result.ok() || result->res != ZX_OK) {
+                            if (result.ok() && result->res == ZX_ERR_ALREADY_EXISTS) {
+                                mesa_logd(
+                                    "CreateColorBuffer: color buffer already "
+                                    "exists\n");
+                            } else {
+                                mesa_loge("CreateColorBuffer failed: %d:%d", result.status(),
+                                          GET_STATUS_SAFE(result, res));
+                                abort();
+                            }
                         }
                     }
                 }
             }
 
-            if (pBufferConstraintsInfo) {
+            if (pBufferConstraintsInfo && !usesGoldfishControlFuchsia()) {
+                // TODO: virtio-gpu has no host Buffer for sysmem buffers yet,
+                // so the host doesn't see this memory's contents.
+                mesa_logw("%s: exported sysmem buffers aren't shared with the host on virtio-gpu",
+                          __func__);
+            } else if (pBufferConstraintsInfo) {
                 fidl::Arena arena;
                 fuchsia_hardware_goldfish::wire::CreateBuffer2Params createParams(arena);
                 createParams.set_size(arena, pBufferConstraintsInfo->createInfo.size)
@@ -3759,8 +3828,20 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
         }
         zx_status_t status2 = ZX_OK;
 
-        auto result = mControlDevice->GetBufferHandle(std::move(vmo_copy));
-        if (!result.ok() || result->res != ZX_OK) {
+        if (!usesGoldfishControlFuchsia()) {
+            // virtio-gpu: vkCreateImage created the ColorBuffer.
+            uint32_t colorBuffer = 0;
+            zx_status_t status = fuchsiaVirtGpuImportColorBuffer(
+                VirtGpuDevice::getInstance(), vmo_copy.get(), 0, 0, 0, /*create=*/false,
+                &colorBuffer);
+            if (status == ZX_OK) {
+                importCbInfo.colorBuffer = colorBuffer;
+                vk_append_struct(&structChainIter, &importCbInfo);
+            } else {
+                mesa_loge("%s: no ColorBuffer for the imported sysmem VMO: %d", __func__, status);
+            }
+        } else if (auto result = mControlDevice->GetBufferHandle(std::move(vmo_copy));
+                   !result.ok() || result->res != ZX_OK) {
             mesa_loge("GetBufferHandle failed: %d:%d", result.status(),
                       GET_STATUS_SAFE(result, res));
         } else {
@@ -4306,7 +4387,21 @@ VkResult ResourceTracker::on_vkCreateImage(void* context, VkResult, VkDevice dev
                       GET_STATUS_SAFE(result, status));
         }
 
-        if (vmo.is_valid()) {
+        if (vmo.is_valid() && !usesGoldfishControlFuchsia()) {
+            // virtio-gpu: create (or find) the 2D resource that the display
+            // driver shares for this buffer. vkAllocateMemory imports it.
+            uint32_t colorBuffer = 0;
+            zx_status_t status = fuchsiaVirtGpuImportColorBuffer(
+                VirtGpuDevice::getInstance(), vmo.get(), pCreateInfo->extent.width,
+                pCreateInfo->extent.height,
+                static_cast<uint32_t>(info.settings.image_format_constraints.pixel_format.type),
+                /*create=*/true, &colorBuffer);
+            if (status != ZX_OK) {
+                mesa_loge("%s: importing the ColorBuffer for sysmem buffer %u failed: %d",
+                          __func__, index, status);
+                return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+            }
+        } else if (vmo.is_valid()) {
             zx::vmo vmo_dup;
             if (zx_status_t status = vmo.duplicate(ZX_RIGHT_SAME_RIGHTS, &vmo_dup);
                 status != ZX_OK) {
@@ -5429,7 +5524,12 @@ VkResult ResourceTracker::on_vkCreateBuffer(void* context, VkResult, VkDevice de
                       GET_STATUS_SAFE(result, status));
         }
 
-        if (vmo && vmo->is_valid()) {
+        if (vmo && vmo->is_valid() && !usesGoldfishControlFuchsia()) {
+            // TODO: virtio-gpu has no host Buffer for sysmem buffers yet, so
+            // the host doesn't see this buffer's contents.
+            mesa_logw("%s: sysmem buffers aren't shared with the host on virtio-gpu", __func__);
+            isSysmemBackedMemory = true;
+        } else if (vmo && vmo->is_valid()) {
             fidl::Arena arena;
             fuchsia_hardware_goldfish::wire::CreateBuffer2Params createParams(arena);
             createParams.set_size(arena, pCreateInfo->size)

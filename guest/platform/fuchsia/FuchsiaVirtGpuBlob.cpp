@@ -15,42 +15,73 @@
  */
 
 #include <cutils/log.h>
+#include <lib/zx/vmar.h>
+#include <msd-virtio-gpu/magma-virtio-gpu-defs.h>
+#include <zircon/syscalls.h>
 
 #include "FuchsiaVirtGpu.h"
 
-FuchsiaVirtGpuResource::FuchsiaVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle,
-                                               uint32_t resourceHandle, uint64_t size) {}
+namespace {
 
-FuchsiaVirtGpuResource::~FuchsiaVirtGpuResource(void) {}
-
-uint32_t FuchsiaVirtGpuResource::getBlobHandle() const {
-    ALOGE("%s: unimplemented", __func__);
-    return 0;
+uint64_t pageRoundUp(uint64_t size) {
+    const uint64_t pageSize = zx_system_get_page_size();
+    return (size + pageSize - 1) & ~(pageSize - 1);
 }
 
-uint32_t FuchsiaVirtGpuResource::getResourceHandle() const {
-    ALOGE("%s: unimplemented", __func__);
-    return 0;
+}  // namespace
+
+FuchsiaVirtGpuResource::FuchsiaVirtGpuResource(FuchsiaVirtGpuDevice* device, uint32_t resourceId,
+                                               uint64_t size, bool mappable)
+    : device_(device), resourceId_(resourceId), size_(size), mappable_(mappable) {}
+
+FuchsiaVirtGpuResource::~FuchsiaVirtGpuResource() {
+    // The MSD unmaps the blob first if it's mapped.
+    magma_virtio_gpu_resource_unref unref = {};
+    unref.hdr.type = kMagmaVirtioGpuCmdResourceUnref;
+    unref.resource_id = resourceId_;
+    device_->sendCommand(&unref, sizeof(unref));
 }
 
-VirtGpuResourceMappingPtr FuchsiaVirtGpuResource::createMapping(void) {
-    ALOGE("%s: unimplemented", __func__);
-    return nullptr;
-}
+uint32_t FuchsiaVirtGpuResource::getResourceHandle() const { return resourceId_; }
 
-int FuchsiaVirtGpuResource::wait() { return -1; }
+// There are no GEM handles on Fuchsia; the resource id doubles as the handle.
+uint32_t FuchsiaVirtGpuResource::getBlobHandle() const { return resourceId_; }
+
+int FuchsiaVirtGpuResource::wait() { return device_->flush(); }
 
 int FuchsiaVirtGpuResource::exportBlob(struct VirtGpuExternalHandle& handle) {
     ALOGE("%s: unimplemented", __func__);
-    return 0;
+    return -1;
 }
 
-int FuchsiaVirtGpuResource::transferFromHost(uint32_t offset, uint32_t size) {
+int FuchsiaVirtGpuResource::transferFromHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
     ALOGE("%s: unimplemented", __func__);
-    return 0;
+    return -1;
 }
 
-int FuchsiaVirtGpuResource::transferToHost(uint32_t offset, uint32_t size) {
+int FuchsiaVirtGpuResource::transferToHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
     ALOGE("%s: unimplemented", __func__);
-    return 0;
+    return -1;
+}
+
+VirtGpuResourceMappingPtr FuchsiaVirtGpuResource::createMapping(void) {
+    if (!mappable_) {
+        ALOGE("%s: resource %u is not mappable", __func__, resourceId_);
+        return nullptr;
+    }
+    zx::vmo vmo = device_->mapBlob(resourceId_);
+    if (!vmo.is_valid()) return nullptr;
+
+    uint64_t mapSize = pageRoundUp(size_);
+    zx_vaddr_t addr = 0;
+    zx_status_t status = zx::vmar::root_self()->map(ZX_VM_PERM_READ | ZX_VM_PERM_WRITE, 0, vmo, 0,
+                                                    mapSize, &addr);
+    if (status != ZX_OK) {
+        ALOGE("%s: vmar map of resource %u (0x%lx bytes) failed: %d", __func__, resourceId_,
+              mapSize, status);
+        return nullptr;
+    }
+    return std::make_shared<FuchsiaVirtGpuResourceMapping>(shared_from_this(),
+                                                           reinterpret_cast<uint8_t*>(addr),
+                                                           mapSize);
 }

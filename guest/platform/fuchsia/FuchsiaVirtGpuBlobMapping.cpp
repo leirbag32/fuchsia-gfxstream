@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
+#include <lib/zx/vmar.h>
+
 #include "FuchsiaVirtGpu.h"
 
 FuchsiaVirtGpuResourceMapping::FuchsiaVirtGpuResourceMapping(VirtGpuResourcePtr blob, uint8_t* ptr,
-                                                             uint64_t size) {}
+                                                             uint64_t size)
+    : blob_(std::move(blob)), ptr_(ptr), size_(size) {}
 
-FuchsiaVirtGpuResourceMapping::~FuchsiaVirtGpuResourceMapping(void) {}
+FuchsiaVirtGpuResourceMapping::~FuchsiaVirtGpuResourceMapping(void) {
+    zx::vmar::root_self()->unmap(reinterpret_cast<zx_vaddr_t>(ptr_), size_);
+}
 
-uint8_t* FuchsiaVirtGpuResourceMapping::asRawPtr(void) { return nullptr; }
+uint8_t* FuchsiaVirtGpuResourceMapping::asRawPtr(void) { return ptr_; }

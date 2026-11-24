@@ -17,14 +17,19 @@
 #pragma once
 
 #include <lib/magma/magma.h>
+#include <lib/zx/vmo.h>
+
+#include <mutex>
 
 #include "VirtGpu.h"
+
+class FuchsiaVirtGpuDevice;
 
 class FuchsiaVirtGpuResource : public std::enable_shared_from_this<FuchsiaVirtGpuResource>,
                                public VirtGpuResource {
    public:
-    FuchsiaVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle, uint32_t resourceHandle,
-                           uint64_t size);
+    FuchsiaVirtGpuResource(FuchsiaVirtGpuDevice* device, uint32_t resourceId, uint64_t size,
+                           bool mappable);
     ~FuchsiaVirtGpuResource();
 
     uint32_t getResourceHandle() const override;
@@ -32,10 +37,16 @@ class FuchsiaVirtGpuResource : public std::enable_shared_from_this<FuchsiaVirtGp
     int wait() override;
 
     int exportBlob(struct VirtGpuExternalHandle& handle) override;
-    int transferFromHost(uint32_t offset, uint32_t size) override;
-    int transferToHost(uint32_t offset, uint32_t size) override;
+    int transferFromHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) override;
+    int transferToHost(uint32_t x, uint32_t y, uint32_t w, uint32_t h) override;
 
     VirtGpuResourceMappingPtr createMapping(void) override;
+
+   private:
+    FuchsiaVirtGpuDevice* device_;  // Unowned; outlives its resources.
+    uint32_t resourceId_;
+    uint64_t size_;
+    bool mappable_;
 };
 
 class FuchsiaVirtGpuResourceMapping : public VirtGpuResourceMapping {
@@ -44,6 +55,11 @@ class FuchsiaVirtGpuResourceMapping : public VirtGpuResourceMapping {
     ~FuchsiaVirtGpuResourceMapping(void);
 
     uint8_t* asRawPtr(void) override;
+
+   private:
+    VirtGpuResourcePtr blob_;  // Keeps the resource alive while mapped.
+    uint8_t* ptr_;
+    uint64_t size_;
 };
 
 class FuchsiaVirtGpuDevice : public VirtGpuDevice {
@@ -63,7 +79,28 @@ class FuchsiaVirtGpuDevice : public VirtGpuDevice {
 
     int execBuffer(struct VirtGpuExecBuffer& execbuffer, const VirtGpuResource* blob) override;
 
+    // Helpers for FuchsiaVirtGpuResource.
+
+    // Sends one raw virtio-gpu command to the MSD, which forwards it to the host.
+    int sendCommand(const void* command, size_t size);
+    // Round trip to the MSD: every command sent before has reached the host.
+    int flush();
+    // Returns a VMO covering a mappable blob, mapping it into hostmem first.
+    zx::vmo mapBlob(uint32_t resourceId);
+    // See fuchsiaVirtGpuImportColorBuffer().
+    zx_status_t importColorBuffer(zx_handle_t vmo, uint32_t width, uint32_t height,
+                                  uint32_t sysmemPixelFormat, bool create, uint32_t* colorBuffer);
+
    private:
+    bool isReady() const { return connection_ != 0; }
+
     magma_device_t device_;
+    magma_connection_t connection_ = 0;
+    uint32_t contextId_ = 0;
+    // Holds the requests to the MSD (magma-virtio-gpu-defs.h), created on first use.
+    magma_buffer_t requestBuffer_ = 0;
+    magma_buffer_id_t requestBufferId_ = 0;
+    zx::vmo requestVmo_;
+    std::mutex mutex_;  // Serializes use of connection_ and the request buffer.
     struct VirtGpuCaps mCaps;
 };

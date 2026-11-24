@@ -532,6 +532,16 @@ class ResourceTracker {
 
     void setupFeatures(const EmulatorFeatureInfo* features);
     void setupCaps(uint32_t& noRenderControlEnc);
+#ifdef VK_USE_PLATFORM_FUCHSIA
+    // Connects mSysmemAllocator if it isn't connected yet. Needed on both the
+    // goldfish (setupFeatures) and the virtio-gpu (setupCaps) paths.
+    void setupSysmemAllocatorFuchsia();
+    // True on goldfish, where sysmem buffers are registered with the host
+    // through the goldfish ControlDevice. False on virtio-gpu, where they're
+    // imported as the 2D resources shared with the display driver (see
+    // FuchsiaVirtGpuColorBuffer.h).
+    bool usesGoldfishControlFuchsia() const { return mControlDevice.is_valid(); }
+#endif
 
     void setThreadingCallbacks(const ThreadingCallbacks& callbacks);
     bool hostSupportsVulkan() const;

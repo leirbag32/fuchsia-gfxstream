@@ -33,6 +33,13 @@ config("common_config") {
     "HAVE_PROGRAM_INVOCATION_NAME=1",
     "HAVE_ENDIAN_H=1",
     "HAVE_PTHREAD=1",
+
+    # Use Fuchsia libc's C11 <threads.h>. Mesa's c11/impl/threads_posix.c isn't
+    # built, so mtx_init() and friends resolve to libc. Without this define,
+    # Mesa's fallback header uses its own enum values (mtx_plain = 0x1, which
+    # libc reads as mtx_recursive and rejects) and pthread-based types, which
+    # don't match libc's ABI.
+    "HAVE_THRD_CREATE=1",
     "HAVE_STRUCT_TIMESPEC=1",
     "HAVE_TIMESPEC_GET=1",
     "HAVE_UNISTD_H=1",

@@ -232,6 +232,7 @@ loadable_module("libvulkan_gfxstream") {
     "qemupipe/qemu_pipe_guest.cpp",
     "renderControl_enc/renderControl_enc.cpp",
     "renderControl_enc/renderControl_enc.h",
+    "vulkan/gfxstream_vk_cmd.cpp",
     "vulkan/gfxstream_vk_device.cpp",
     "vulkan/gfxstream_vk_wsi_stub.cpp",
     "vulkan_enc/CommandBufferStagingStream.cpp",

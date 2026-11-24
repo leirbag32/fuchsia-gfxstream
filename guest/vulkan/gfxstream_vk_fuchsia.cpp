@@ -18,6 +18,8 @@
 
 #include "ResourceTracker.h"
 #include "TraceProviderFuchsia.h"
+#include "gfxstream_vk_entrypoints.h"
+#include "gfxstream_vk_private.h"
 #include "services/service_connector.h"
 
 namespace {
@@ -69,7 +71,8 @@ const char* StripFile(const char* file, FuchsiaLogSeverity severity) {
 extern "C" void gfxstream_fuchsia_log(int8_t severity, const char* tag, const char* file, int line,
                                       const char* format, va_list va) {
     if (!logger->IsValid()) {
-        abort();
+        // No syslog connection in this process.
+        return;
     }
     fuchsia_logging::LogBuffer buffer;
     constexpr size_t kFormatStringLength = 1024;
@@ -153,13 +156,13 @@ class VulkanDevice {
 };
 
 void VulkanDevice::InitLogger() {
-    auto logger = fuchsia_logging::Logger::Create(fuchsia_logging::RawLogSettings{
+    auto result = fuchsia_logging::Logger::Create(fuchsia_logging::RawLogSettings{
         .log_sink = GetConnectToServiceFunction()("/svc/fuchsia.logger.LogSink"),
     });
-    if (logger.is_error()) {
+    if (result.is_error()) {
         return;
     }
-    *logger = *std::move(logger);
+    *logger = *std::move(result);
 }
 
 void VulkanDevice::InitTraceProvider() {
@@ -176,4 +179,105 @@ extern "C" __attribute__((visibility("default"))) void vk_icdInitializeOpenInNam
     VulkanDevice::InitLogger();
 
     ALOGV("Gfxstream on Fuchsia initialized");
+}
+
+// Entry points for the VK_FUCHSIA_* extensions.
+//
+// codegen/.../cereal/functable.py lists these in RESOURCE_TRACKER_ENTRIES, but
+// the checked-in vulkan_enc/func_table.cpp was generated without the Fuchsia
+// extensions. Without these definitions the weak references in
+// gfxstream_vk_entrypoints.h stay NULL, and the device dispatch table hands
+// NULL function pointers to apps (Scenic jumps to PC 0). They follow the
+// pattern of the generated wrappers: unwrap gfxstream handles, then forward to
+// ResourceTracker. VkDeviceMemory and VkBufferCollectionFUCHSIA aren't wrapped
+// by gfxstream; VkDevice and VkSemaphore are.
+
+VkResult gfxstream_vk_GetMemoryZirconHandleFUCHSIA(
+    VkDevice device, const VkMemoryGetZirconHandleInfoFUCHSIA* pGetZirconHandleInfo,
+    zx_handle_t* pZirconHandle) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    return gfxstream::vk::ResourceTracker::get()->on_vkGetMemoryZirconHandleFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, pGetZirconHandleInfo,
+        pZirconHandle);
+}
+
+VkResult gfxstream_vk_GetMemoryZirconHandlePropertiesFUCHSIA(
+    VkDevice device, VkExternalMemoryHandleTypeFlagBits handleType, zx_handle_t zirconHandle,
+    VkMemoryZirconHandlePropertiesFUCHSIA* pMemoryZirconHandleProperties) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    return gfxstream::vk::ResourceTracker::get()->on_vkGetMemoryZirconHandlePropertiesFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, handleType, zirconHandle,
+        pMemoryZirconHandleProperties);
+}
+
+VkResult gfxstream_vk_GetSemaphoreZirconHandleFUCHSIA(
+    VkDevice device, const VkSemaphoreGetZirconHandleInfoFUCHSIA* pGetZirconHandleInfo,
+    zx_handle_t* pZirconHandle) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    VkSemaphoreGetZirconHandleInfoFUCHSIA internal_info = *pGetZirconHandleInfo;
+    VK_FROM_HANDLE(gfxstream_vk_semaphore, gfxstream_semaphore, internal_info.semaphore);
+    internal_info.semaphore = gfxstream_semaphore->internal_object;
+    return gfxstream::vk::ResourceTracker::get()->on_vkGetSemaphoreZirconHandleFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, &internal_info, pZirconHandle);
+}
+
+VkResult gfxstream_vk_ImportSemaphoreZirconHandleFUCHSIA(
+    VkDevice device,
+    const VkImportSemaphoreZirconHandleInfoFUCHSIA* pImportSemaphoreZirconHandleInfo) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    VkImportSemaphoreZirconHandleInfoFUCHSIA internal_info = *pImportSemaphoreZirconHandleInfo;
+    VK_FROM_HANDLE(gfxstream_vk_semaphore, gfxstream_semaphore, internal_info.semaphore);
+    internal_info.semaphore = gfxstream_semaphore->internal_object;
+    return gfxstream::vk::ResourceTracker::get()->on_vkImportSemaphoreZirconHandleFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, &internal_info);
+}
+
+VkResult gfxstream_vk_CreateBufferCollectionFUCHSIA(
+    VkDevice device, const VkBufferCollectionCreateInfoFUCHSIA* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator, VkBufferCollectionFUCHSIA* pCollection) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    return gfxstream::vk::ResourceTracker::get()->on_vkCreateBufferCollectionFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, pCreateInfo, pAllocator,
+        pCollection);
+}
+
+void gfxstream_vk_DestroyBufferCollectionFUCHSIA(VkDevice device,
+                                                 VkBufferCollectionFUCHSIA collection,
+                                                 const VkAllocationCallbacks* pAllocator) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    gfxstream::vk::ResourceTracker::get()->on_vkDestroyBufferCollectionFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, collection, pAllocator);
+}
+
+VkResult gfxstream_vk_SetBufferCollectionBufferConstraintsFUCHSIA(
+    VkDevice device, VkBufferCollectionFUCHSIA collection,
+    const VkBufferConstraintsInfoFUCHSIA* pBufferConstraintsInfo) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    return gfxstream::vk::ResourceTracker::get()->on_vkSetBufferCollectionBufferConstraintsFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, collection, pBufferConstraintsInfo);
+}
+
+VkResult gfxstream_vk_SetBufferCollectionImageConstraintsFUCHSIA(
+    VkDevice device, VkBufferCollectionFUCHSIA collection,
+    const VkImageConstraintsInfoFUCHSIA* pImageConstraintsInfo) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    return gfxstream::vk::ResourceTracker::get()->on_vkSetBufferCollectionImageConstraintsFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, collection, pImageConstraintsInfo);
+}
+
+VkResult gfxstream_vk_GetBufferCollectionPropertiesFUCHSIA(
+    VkDevice device, VkBufferCollectionFUCHSIA collection,
+    VkBufferCollectionPropertiesFUCHSIA* pProperties) {
+    VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
+    return gfxstream::vk::ResourceTracker::get()->on_vkGetBufferCollectionPropertiesFUCHSIA(
+        vkEnc, VK_SUCCESS, gfxstream_device->internal_object, collection, pProperties);
 }
